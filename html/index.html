@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Bootstrap demo</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    </head>
+    <body>
+        <!-- Это шаблон страницы с пред-подключённым Bootstrap -->
+        <!-- Менять код можно ТОЛЬКО в пределах от "Начала страницы" до "Конца страницы" -->
+
+        <!-- Начало страницы -->
+       ```html
+<div class="container">
+
+    <!-- Верхнее меню -->
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom mb-4">
+        <div class="container-fluid">
+
+            <a class="navbar-brand fw-bold" href="/">
+                🎬 Sakila Movie Finder
+            </a>
+
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Главная</a>
+                <a class="nav-link" href="#search-name">По названию</a>
+                <a class="nav-link" href="#search-genre">По жанру и году</a>
+                <a class="nav-link" href="/statistics">Статистика</a>
+            </div>
+
+        </div>
+    </nav>
+
+    <!-- Hero блок -->
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm border-0 text-center mb-4">
+
+                <div class="card-body p-5">
+
+                    <h1 class="display-5 text-primary fw-bold">
+                        🎬 Sakila Movie Finder
+                    </h1>
+
+                    <p class="lead text-muted mt-3">
+                        Поиск фильмов в учебной базе данных Sakila.
+                    </p>
+
+                    <p class="text-secondary">
+                        Выполняйте поиск по названию фильма,
+                        жанру и диапазону годов выпуска.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Формы поиска -->
+
+    <div class="row">
+
+        <!-- По названию -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm h-100" id="search-name">
+
+                <div class="card-body">
+
+                    <h4 class="mb-3">
+                        🔎 Поиск по названию
+                    </h4>
+
+                    <p class="text-muted">
+                        Введите часть названия фильма.
+                    </p>
+
+                    <form method="POST"
+                          action="/search_by_name">
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Ключевое слово
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="movie_name"
+                                placeholder="например: matrix">
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                OFFSET
+                            </label>
+
+                            <input
+                                type="number"
+                                class="form-control"
+                                value="0"
+                                name="offset">
+
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary w-100">
+
+                            Искать
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- По жанру и годам -->
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm h-100" id="search-genre">
+
+                <div class="card-body">
+
+                    <h4 class="mb-3">
+                        🎞️ Поиск по жанру и годам
+                    </h4>
+
+                    <p class="text-muted">
+                        Укажите жанр и диапазон лет.
+                    </p>
+
+                    <form method="POST"
+                          action="/search_by_genre">
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Жанр
+                            </label>
+
+                            <select
+                                class="form-select"
+                                name="genre_id">
+
+                                <option value="">
+                                    -- Выберите жанр --
+                                </option>
+
+                                <option value="1">Action</option>
+                                <option value="2">Animation</option>
+                                <option value="3">Children</option>
+                                <option value="4">Classics</option>
+                                <option value="5">Comedy</option>
+                                <option value="6">Documentary</option>
+                                <option value="7">Drama</option>
+                                <option value="8">Family</option>
+                                <option value="9">Foreign</option>
+                                <option value="10">Games</option>
+                                <option value="11">Horror</option>
+                                <option value="12">Music</option>
+                                <option value="13">New</option>
+                                <option value="14">Sci-Fi</option>
+                                <option value="15">Sports</option>
+                                <option value="16">Travel</option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="row">
+
+                            <div class="col">
+
+                                <label class="form-label">
+                                    Год от
+                                </label>
+
+                                <input
+                                    type="number"
+                                    class="form-control"
+                                    name="year_from"
+                                    value="1990">
+
+                            </div>
+
+                            <div class="col">
+
+                                <label class="form-label">
+                                    Год до
+                                </label>
+
+                                <input
+                                    type="number"
+                                    class="form-control"
+                                    name="year_to"
+                                    value="2026">
+
+                            </div>
+
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary w-100 mt-3">
+
+                            Искать
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Кнопка статистики -->
+
+    <div class="text-center mt-4">
+
+        <a href="/statistics"
+           class="btn btn-outline-secondary btn-lg">
+
+            📊 Посмотреть статистику запросов
+
+        </a>
+
+    </div>
+
+    <!-- Результаты -->
+
+    <div class="card shadow-sm mt-5">
+
+        <div class="card-header bg-primary text-white">
+
+            Результаты поиска
+
+        </div>
+
+        <div class="card-body">
+
+            {% if films %}
+
+            <table class="table table-striped table-hover">
+
+                <thead>
+
+                <tr>
+                    <th>Название</th>
+                    <th>Описание</th>
+                    <th>Год</th>
+                    <th>Жанр</th>
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for film in films %}
+
+                <tr>
+
+                    <td>{{ film.title }}</td>
+
+                    <td>{{ film.description }}</td>
+
+                    <td>{{ film.release_year }}</td>
+
+                    <td>{{ film.category_id }}</td>
+
+                </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            {% else %}
+
+            <div class="alert alert-light">
+
+                Выполните поиск, чтобы увидеть результаты.
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <!-- Подвал -->
+
+    <footer class="text-center mt-5 mb-4 text-muted">
+
+        Учебный проект • Flask • Python • MySQL • Sakila
+
+    </footer>
+
+</div>
+```
+
+
+
+
+
+
+        <!-- Конец страницы -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+  </body>
+</html>
