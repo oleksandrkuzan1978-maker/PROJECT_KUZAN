@@ -8,3 +8,129 @@ executor.py      # Функции выполнения запросов
     ↓
 queries.py       # Только запросы к базе данных "sakila"
 
+Общая архитектура проекта:
+
+UI (main.py / будущий console.py)
+        │
+        ▼
+Business Layer (film_service.py)
+        │
+        ▼
+Data Access Layer
+(connection.py + executor.py + queries.py)
+        │
+        ▼
+MySQL
+
+
+
+Полная схема зависимостей:
+
+main.py
+ │
+ ├── setup_logging() ─────────► logger_config.py
+ │
+ ├── show_films_by_name() ───► film_service.py
+ │
+ └── show_films_by_genre() ──► film_service.py
+                                │
+                                │
+                                ├── get_connection() ─────────► connection.py
+                                │                                │
+                                │                                ▼
+                                │                         local_settings.py
+                                │
+                                ├── GET_BY_NAME ──────────────► queries.py
+                                │
+                                ├── GET_BY_GENRES_AND_YEARS ─► queries.py
+                                │
+                                └── execute_query() ─────────► executor.py
+                                                                 │
+                                                                 ▼
+                                                          local_settings.py
+
+Кто кого импортирует
+
+main.py
+Импортирует:
+from utils.logger_config import setup_logging
+from database.film_service import (
+    show_films_by_name,
+    show_films_by_genre
+)
+
+film_service.py
+Импортирует:
+from database.connection import get_connection
+from database.executor import execute_query
+from database.queries import (
+    GET_BY_NAME,
+    GET_BY_GENRES_AND_YEARS
+)
+
+connection.py
+Импортирует:
+from config.local_settings import dbconfig
+
+executor.py
+Импортирует:
+from config.local_settings import dbconfig
+
+queries.py
+Никого не импортирует.
+
+
+
+
+ ВИД ПРОЕКТА:
+
+     project/
+    │
+    ├── main.py
+    │
+    ├── ui/
+    │   └── console.py
+    │
+    ├── database/
+    │   ├── connection.py
+    │   ├── executor.py
+    │   ├── film_service.py
+    │   └── queries.py
+    │
+    ├── config/
+    │   └── local_settings.py
+    │
+    └── utils/
+        └── logger_config.py
+
+
+
+СХЕМА ПРОЕКТА:
+
+    main.py
+     │
+     ▼
+    console.py
+     │
+     ├── get_name_search_params()
+     │
+     ├── get_genre_search_params()
+     │
+     ├── show_result()
+     │
+     └── show_error()
+     │
+     ▼
+    film_service.py
+     │
+     ├── get_connection()
+     │
+     ├── execute_query()
+     │
+     └── SQL-константы
+     │
+     ▼
+    MySQL
+
+
+

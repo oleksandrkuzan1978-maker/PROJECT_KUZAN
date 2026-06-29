@@ -17,25 +17,47 @@
 Модуль не содержит бизнес-логики и не зависит
 от конкретных таблиц базы данных.
 """
-from typing import Any
+#from typing import Any
 
 # database/executor.py
-from config.local_settings import dbconfig
+# from config.local_settings import dbconfig
 from tabulate import tabulate
+import mysql.connector
 import logging
-logger = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)  # Создаю логгер с именем "executor".
+                                      # Метод getLogger возвращает объект логгера с именем этого модуля".
 
 def execute_query(cursor, query: str, *params) -> str:
-    db_name = dbconfig.get("database", "unknown")
-    if len(params)<3:
-        print(f"\nВывод фильмов из БД '{db_name}' по названию и году выпуска :")
-    else:
-        print(f"\nВывод фильмов по жанрам и годам из БД '{db_name}':")
 
-    cursor.execute(query, params)
+    try:  #В этом модуле стоит ловить ошибки выполнения SQL
+        logger.info("Выполнение SQL-запроса к БД")
+        cursor.execute(query, params) # Выполняется SQL-запрос. Результат хранится внутри курсора
 
-    rows = cursor.fetchall()
+        rows = cursor.fetchall() # Методом курсора достаем сразу весь результат запроса из курсора.
+                                 # rows - список тюплов. Каждый тюпл - это одна строка таблицы
 
-    headers = [col[0] for col in cursor.description]
+# Блок определяет, что выводить на экран: количество совпадений по запросам или окончательный рез-т
+        if len(params) in (1, 3): # Если параметры относятся к запросам NAME_TOTAL или GENRES_TOTAL
+            return rows[0][0] # тогда ф-ция возвращает общее количество совпадений по запросам
+        else:
+            headers = [col[0] for col in cursor.description]
+            return tabulate(rows, headers=headers, tablefmt="psql")
+###
 
-    return tabulate(rows, headers=headers, tablefmt="psql")
+    except TypeError as te:  # Подумать, стоит ли ловить эту ошибку здесь
+        logger.exception("Неверное количество параметров: %s", te) # передано в params не то кол-во параметров,
+                                                                               # чем нужно для передачи в запрос
+        raise
+    except mysql.connector.ProgrammingError as pe:
+        logger.exception("Неверный запрос: %s", pe)  # ошибки в запросе query
+        raise
+    except mysql.connector.Error as err:  # отлавливает ошибки, связанные с MySQL: не верный пароль,
+                                          # не верное имя БД, ошибки в запросе, неверное количество параметров,
+                                          # потеря соединения...
+        logger.exception("Ошибка при выполнении SQL-запроса: %s", err)
+        raise # raise нужен здесь, чтобы сообщение об ошибке, возникшей при вызове этого модуля
+              # передалось дальше, в модуль, который будет вызывать эту функцию
+    except Exception:
+        logger.exception("Неожиданная ошибка")
+        raise

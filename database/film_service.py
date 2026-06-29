@@ -26,55 +26,104 @@ import mysql.connector
 from database.connection import get_connection
 from database.executor import execute_query
 from database.queries import (
+    NAME_TOTAL,
+    GENRES_TOTAL,
     GET_BY_NAME,
-    GET_BY_GENRES_AND_YEARS
+    GET_BY_GENRES_AND_YEARS,
+    GET_GENRES
 )
 
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) # Создаю логгер с именем "file_service".
+                                      # Метод getLogger возвращает объект логгера с именем этого модуля".
+
+
+# Ф-ция возвращает общее кол-во совпадений по запросу
+def show_total(name_genre, year_from, year_to):
+
+    connection = get_connection()
+    try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
+        cursor = connection.cursor()
+        if not year_from:
+            total = execute_query(cursor,  # Общее кол-во совпадений по запросу
+                                  NAME_TOTAL,
+                                 name_genre)
+        else:
+            total = execute_query(cursor,  # Общее кол-во совпадений по запросу
+                                  GENRES_TOTAL,
+                                  name_genre, year_from, year_to)
+        return total
+
+
+    except mysql.connector.Error:
+        logger.exception("Ошибка подключения при запросе №1_1 или 2_1")
+        raise
+    finally:
+        connection.close()
+        logger.info("Соединение для запросов 1_1, 2_1 закрыто")
 
 
 def show_films_by_name(
         name: str,
         offset: int):
-    try:
-        connection = get_connection()
+
+    connection = get_connection()
+    try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
+        cursor = connection.cursor()
+
+        return execute_query(
+            cursor,
+            GET_BY_NAME,
+            name,
+            offset)
+
     except mysql.connector.Error:
-        print("Не удалось подключиться к БД")
-        exit(1)
+        logger.exception("Ошибка подключения при запросе №1_2")
+        raise
+    finally:
+        connection.close()
+        logger.info("Соединение для запроса 1_2 закрыто")
 
-    cursor = connection.cursor()
-
-    result = execute_query(
-        cursor,
-        GET_BY_NAME,
-        name,
-        offset)
-
-    connection.close()
-
-    return result
 
 
 def show_films_by_genre(
         genre_id: int,
         year_from: int,
-        year_to: int):
+        year_to: int,
+        offset: int):
     connection = get_connection()
     try:
         cursor = connection.cursor()
+
+        return execute_query(
+            cursor,
+            GET_BY_GENRES_AND_YEARS,
+            genre_id,
+            year_from,
+            year_to,
+            offset
+        )
+
     except mysql.connector.Error:
-        print("Не удалось подключиться к БД")
-        exit(1)
-    result = execute_query(
-        cursor,
-        GET_BY_GENRES_AND_YEARS,
-        genre_id,
-        year_from,
-        year_to
-    )
+        logger.exception("Ошибка подключения при запросе №2_2")
+        raise
+    finally:
+        connection.close()
+        logger.info("Соединение для запроса 2_2 закрыто")
 
-    connection.close()
 
-    return result
+
+def show_categories():
+    connection = get_connection()
+    try:
+        cursor = connection.cursor()
+        return execute_query(
+            cursor,
+            GET_GENRES)
+    except mysql.connector.Error:
+        logger.exception("Ошибка подключения при запросе №3")
+        raise
+    finally:
+        connection.close()
+        logger.info("Соединение для запроса 3 закрыто")

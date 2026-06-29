@@ -20,7 +20,7 @@
 
 # database/connection.py
 import mysql.connector
-from config.local_settings import dbconfig
+from config.local_settings import dbconfig # импорт словаря с настройками подключения
 
 import logging
 
@@ -29,10 +29,11 @@ logger = logging.getLogger(__name__)
 
 def get_connection():
     logger.debug("Параметры подключения загружены")
-    try:
-        conn = mysql.connector.connect(**dbconfig)
+    try: # В этом модуле стоит ловить ошибки подключения
+        conn = mysql.connector.connect(**dbconfig) # функция из библиотеки mysql.connector
+                                                    # пытается установить соединение с сервером MySQL.
         logger.info("Успешное подключение к БД '%s'", dbconfig.get("database"))
-        return conn
+        return conn # это объект соединения (MySQLConnection)
     except mysql.connector.Error:
         logger.exception("Ошибка подключения к MySQL")
         raise
