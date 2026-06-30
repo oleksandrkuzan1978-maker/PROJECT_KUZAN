@@ -8,6 +8,17 @@ import keyboard
 import os
 import platform
 
+def input_number(message):
+    while True:
+        value = input(message)
+
+        if value.isdigit():
+            return int(value)
+
+        print("Введите число.")
+
+
+# Ф-ция очистки экрана
 def clear_screen():
     # Если ОС Windows, берем 'cls', иначе (macOS/Linux) — 'clear'
     command = 'cls' if platform.system().lower() == 'windows' else 'clear'
@@ -19,13 +30,16 @@ logger = logging.getLogger(__name__)
 # ui/console.py
 
 def get_user_input():
+    PAGE_SIZE = 10
     db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
 
     while True:
-
-        choice = input("\nВыберите, пожалуйста, критерии подбора фильмов:\n"
-                       "    - если вы хотите выбрать фильм по названию, нажмите \"1\"\n"
-                       "    - если по жанру и диапазону годов выпуска, нажмите \"2\": ")
+        print("\nВыберите, пожалуйста, критерии подбора фильмов:\n"
+                       "    - выбрать фильм по названию, нажмите \"1\"\n"
+                       "    - выбрать фильм по жанру \n"
+                       "      и диапазону годов выпуска, нажмите \"2\": ", end="")
+        # print("Для выхода из программы нажмите 'q' и 'Enter'")
+        choice = input()
 
         year_from = None
         year_to = None
@@ -41,35 +55,57 @@ def get_user_input():
             logger.info("Поиск по жанру и диапазону лет выпуска")
             print()
             # Вывод на экран терминала списка жанров
-            logger.info("Вывод списка жанров)")
-            result3 = show_categories()
-            logger.info("Результат запроса №3 (вывод списка жанров) получен")
+
+            result3 = show_categories() #, number_genres
+
             print(f"\n======== Список жанров =======")
             print(result3)
 
+
             # Ввод данных для поиска по жанрам и годам
-            first = int(input("\nИз предложенного списка жанров выберите\n"
-                              "по номеру интересующий вас жанр картины: "))
-            year_from = int(input("Введите начальный год диапазона (4 цифры): "))
-            year_to = int(input("Введите конечный год диапазона (4 цифры): "))
+            while True:
+                first = input_number("Введите номер жанра: ")
+                if 1 <= first <= 16: #number_genres:
+                    break
+                else:
+                    print("\n\tВыбранный вами жанр отсутствует в списке")
+                    continue
+
+            while True:
+                year_from = input_number("Введите начальный год диапазона (4 цифры): ")
+                year_to =  input_number("Введите конечный год диапазона (4 цифры): ")
+                if len(str(year_from)) == len(str(year_to)) == 4 and year_from <= year_to:
+                    break
+                else:
+                    print("Некорректный ввод года")
+                    continue
+
+
             total = show_total(first, year_from, year_to)
-            # offset, page = offset_page(total)
+
             print(f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' =========")
+        elif choice == "q":
+            print("\nСпасибо за использование программы!")
+            return
 
 
         else:
             print("\nВы ввели некорректный символ для выбора.\n")
             continue # Возвращаем в начало цикла, если выбор неверный
 
-        limit = 10
-        pages = (total + limit - 1) // limit  # Общее кол-во страниц для вывода полученных результатов
+        if total == 0:
+            print("По данному запросу фильмы не найдены.")
+            continue
+
+
+        pages = (total + PAGE_SIZE - 1) // PAGE_SIZE  # Общее кол-во страниц для вывода полученных результатов
 
 
         page = 1
 
         while True:
 
-            clear_screen()  # Очистка экрана перед выводом новой страницы
+
 
 
             offset = (page - 1) * 10  # Вычисляем значение offset требуемое в SQL-запросах
@@ -110,9 +146,10 @@ def get_user_input():
                                 break
 
                     target_page = int(user_input)  # Присваиваем собранное число
-                    if 1<= target_page < pages:
+                    if 1 <= target_page <= pages:
                         page = target_page
                     else:
+                        clear_screen()  # Очистка экрана перед выводом новой страницы
                         print(f"Страница под номером {target_page} отсутствует")
 
                 # 2. Если сразу были нажаты стрелки или Esc

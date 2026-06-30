@@ -28,7 +28,7 @@ import logging
 logger = logging.getLogger(__name__)  # Создаю логгер с именем "executor".
                                       # Метод getLogger возвращает объект логгера с именем этого модуля".
 
-def execute_query(cursor, query: str, *params) -> str:
+def execute_query(cursor, query: str, *params):
 
     try:  #В этом модуле стоит ловить ошибки выполнения SQL
         logger.info("Выполнение SQL-запроса к БД")

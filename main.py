@@ -28,8 +28,6 @@ setup_logging()
 
 logger = logging.getLogger(__name__) # Создаю логгер с именем "main".
                                      # Метод getLogger возвращает объект логгера с именем этого модуля"
-
-
 def main():
     # Достаю из переменной (словаря) название БД
 
@@ -40,9 +38,6 @@ def main():
 
         logger.info("=== Все запросы выполнены успешно ===")
         logger.info("Завершение приложения")
-
-
-
     except mysql.connector.Error:
         print("Не удалось подключиться к БД")
         exit(1)
@@ -50,7 +45,6 @@ def main():
         logger.exception("Критическая ошибка в main()")
         print("Произошла ошибка выполнения программы. Проверьте логи.")
         exit(1)
-
 
 if __name__ == "__main__":
     main()
