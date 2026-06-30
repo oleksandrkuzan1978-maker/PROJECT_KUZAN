@@ -64,54 +64,37 @@ def show_total(name_genre, year_from, year_to):
         logger.info("Соединение для запросов 1_1, 2_1 закрыто")
 
 
-def show_films_by_name(
-        name: str,
+def show_films_by(
+        first,
+        year_from,
+        year_to,
         offset: int):
 
     connection = get_connection()
     try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
         cursor = connection.cursor()
-
-        return execute_query(
-            cursor,
-            GET_BY_NAME,
-            name,
-            offset)
+        if not year_from:
+            return execute_query(
+                cursor,
+                GET_BY_NAME,
+                first,
+                offset)
+        else:
+            return execute_query(
+                cursor,
+                GET_BY_GENRES_AND_YEARS,
+                first,
+                year_from,
+                year_to,
+                offset
+            )
 
     except mysql.connector.Error:
-        logger.exception("Ошибка подключения при запросе №1_2")
+        logger.exception("Ошибка подключения при запросе #1_2 или 2_2")
         raise
     finally:
         connection.close()
-        logger.info("Соединение для запроса 1_2 закрыто")
-
-
-
-def show_films_by_genre(
-        genre_id: int,
-        year_from: int,
-        year_to: int,
-        offset: int):
-    connection = get_connection()
-    try:
-        cursor = connection.cursor()
-
-        return execute_query(
-            cursor,
-            GET_BY_GENRES_AND_YEARS,
-            genre_id,
-            year_from,
-            year_to,
-            offset
-        )
-
-    except mysql.connector.Error:
-        logger.exception("Ошибка подключения при запросе №2_2")
-        raise
-    finally:
-        connection.close()
-        logger.info("Соединение для запроса 2_2 закрыто")
-
+        logger.info("Соединение для запроса 1_2, 2_2 закрыто")
 
 
 def show_categories():

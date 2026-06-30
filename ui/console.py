@@ -1,41 +1,41 @@
 
 from config.local_settings import dbconfig
 from database.film_service import (show_total,
-                                   show_categories)
+                                   show_categories,
+                                   show_films_by)
 import logging
+import keyboard
+import os
+import platform
+
+def clear_screen():
+    # Если ОС Windows, берем 'cls', иначе (macOS/Linux) — 'clear'
+    command = 'cls' if platform.system().lower() == 'windows' else 'clear'
+    return os.system(command)
+
 
 logger = logging.getLogger(__name__)
 
 # ui/console.py
 
-# Ф-ция возвращает значение оffset, требуемое в SQL-запросах и номер страницы вывода результатов page
-def offset_page(total: int):
-    limit = 10
-    pages = (total + limit - 1) // limit  # Общее кол-во страниц для вывода полученных результатов
-    # при максимальном кол-ве результатов на одну стр. = limit
-    print(f"Общее кол-во совпадений = {total}")
-    print(f"Общее кол-во страниц для вывода результатов = {pages}")
-    page = int(input("Введите номер страницы, на которой вы хотите "
-                     "просмотреть результаты вашего запроса: "))
-    offset = (page - 1) * 10  # Вычисляем значение offset требуемое в SQL-запросах
-    return offset, page
-
-
 def get_user_input():
     db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
 
     while True:
-        choice = input("Выберите, пожалуйста, критерии подбора фильмов:\n"
+
+        choice = input("\nВыберите, пожалуйста, критерии подбора фильмов:\n"
                        "    - если вы хотите выбрать фильм по названию, нажмите \"1\"\n"
                        "    - если по жанру и диапазону годов выпуска, нажмите \"2\": ")
+
+        year_from = None
+        year_to = None
 
         if choice == "1":
             logger.info("Поиск по названию фильма)")
             print()
-            name = input("Введите название фильма: ")
-            total = show_total(f"%{name}%", None, None)
-            offset, page = offset_page(total)
-            return name, None, None, offset
+            first = f"%{input("\nВведите название фильма: ")}%"
+            total = show_total(first, None, None)
+            print(f"\n========= Вывод фильмов из БД '{db_name}' по названию и году выпуска ==========")
 
         elif choice == "2":
             logger.info("Поиск по жанру и диапазону лет выпуска")
@@ -48,15 +48,92 @@ def get_user_input():
             print(result3)
 
             # Ввод данных для поиска по жанрам и годам
-            genre = int(input("Из предложенного списка жанров выберите\n"
+            first = int(input("\nИз предложенного списка жанров выберите\n"
                               "по номеру интересующий вас жанр картины: "))
             year_from = int(input("Введите начальный год диапазона (4 цифры): "))
             year_to = int(input("Введите конечный год диапазона (4 цифры): "))
-            total = show_total(genre, year_from, year_to)
-            offset, page = offset_page(total)
+            total = show_total(first, year_from, year_to)
+            # offset, page = offset_page(total)
+            print(f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' =========")
 
-            return genre, year_from, year_to, offset
 
         else:
             print("\nВы ввели некорректный символ для выбора.\n")
+            continue # Возвращаем в начало цикла, если выбор неверный
+
+        limit = 10
+        pages = (total + limit - 1) // limit  # Общее кол-во страниц для вывода полученных результатов
+
+
+        page = 1
+
+        while True:
+
+            clear_screen()  # Очистка экрана перед выводом новой страницы
+
+
+            offset = (page - 1) * 10  # Вычисляем значение offset требуемое в SQL-запросах
+            result = show_films_by(first, year_from, year_to, offset)
+
+            print(result, "\n")
+            print(f"Найдено: {total} результата(ов)\nСтраница {page} из {pages}")
+
+            print("\nНажмите [Стрелка вправо] -> далее, [Стрелка влево] -> назад, [f] -> новый поиск, [Esc] -> выход")
+            print("Или просто введите номер страницы и нажмите [Enter]: ")
+
+
+
+            # Ждем первое событие клавиатуры
+            event = keyboard.read_event()
+
+            # Проверяем, что клавишу именно НАЖАЛИ, а не отпустили
+            if event.event_type == keyboard.KEY_DOWN:
+                key = event.name
+
+                # 1. Если это цифра — собираем число
+                if key.isdigit():
+                    user_input = key
+                    print(key, end="", flush=True)  # Печатаем первую цифру без дублей
+
+                    while True:
+
+                        next_event = keyboard.read_event()
+                        # Ловим только нажатия клавиш
+                        if next_event.event_type == keyboard.KEY_DOWN:
+                            next_key = next_event.name
+
+                            if next_key.isdigit():
+                                user_input += next_key
+                                print(next_key, end="", flush=True)  # Печатаем последующие цифры
+                            elif next_key == "enter":
+                                print()  # Перенос строки
+                                break
+
+                    target_page = int(user_input)  # Присваиваем собранное число
+                    if 1<= target_page < pages:
+                        page = target_page
+                    else:
+                        print(f"Страница под номером {target_page} отсутствует")
+
+                # 2. Если сразу были нажаты стрелки или Esc
+                elif key == "right" and page < pages:
+                    page += 1
+                elif key == "left" and page > 1:
+                    page -= 1
+                elif key == "f":
+                    break
+                elif key == "esc":
+                    # Логика выхода
+                    print("\nСпасибо за использование программы!")
+                    return
+                else:
+                    continue
+
+            else:
+                print("\nНекорректная команда.")
+
+
+
+
+
 
