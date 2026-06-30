@@ -8,6 +8,10 @@ import keyboard
 import os
 import platform
 
+logger = logging.getLogger(__name__)
+
+# ui/console.py
+
 def input_number(message):
     while True:
         value = input(message)
@@ -25,9 +29,94 @@ def clear_screen():
     return os.system(command)
 
 
-logger = logging.getLogger(__name__)
 
-# ui/console.py
+
+def get_navigation(page, pages):
+    """
+    Возвращает действие пользователя.
+
+    Возможные значения:
+        ("next", None)
+        ("prev", None)
+        ("search", None)
+        ("exit", None)
+        ("goto", page_number)
+    """
+
+    while True:
+        # Ждем первое событие клавиатуры
+        event = keyboard.read_event()
+
+        if event.event_type != keyboard.KEY_DOWN:
+            continue
+
+        key = event.name  # Проверяем, что клавишу именно НАЖАЛИ, а не отпустили
+
+        # ---------- Ввод номера страницы ----------
+        # 1. Если это цифра — собираем число
+        if key.isdigit():
+
+            user_input = key
+            print(key, end="", flush=True) # Печатаем первую цифру без дублей
+
+            while True:
+
+                next_event = keyboard.read_event()
+
+                if next_event.event_type != keyboard.KEY_DOWN:
+                    continue
+
+                next_key = next_event.name # Ловим только нажатия клавиш
+
+                if next_key.isdigit():
+
+                    user_input += next_key
+                    print(next_key, end="", flush=True)
+
+                elif next_key == "enter":
+
+                    print()
+                    break
+
+            target_page = int(user_input) # Присваиваем собранное число
+            #return "goto", target_page
+            if 1 <= target_page <= pages:
+                return "goto", target_page
+
+            print(f"\nСтраница {target_page} отсутствует.")
+            print(f"Введите правильный номер страницы: ", end="")
+            continue
+
+
+        # ---------- Стрелки ----------
+
+        elif key == "right":
+
+            if page < pages:
+                return "next", None
+            print("\nЭто последняя страница.")
+
+
+        elif key == "left":
+
+            if page > 1:
+                return "prev", None
+            print("\nЭто первая страница.")
+
+
+        # ---------- Новый поиск ----------
+
+        elif key == "f":
+
+            return "search", None
+
+        # ---------- Выход ----------
+
+        elif key == "esc":
+
+            return "exit", None
+
+
 
 def get_user_input():
     PAGE_SIZE = 10
@@ -73,7 +162,7 @@ def get_user_input():
 
             while True:
                 year_from = input_number("Введите начальный год диапазона (4 цифры): ")
-                year_to =  input_number("Введите конечный год диапазона (4 цифры): ")
+                year_to = input_number("Введите конечный год диапазона (4 цифры): ")
                 if len(str(year_from)) == len(str(year_to)) == 4 and year_from <= year_to:
                     break
                 else:
@@ -101,73 +190,52 @@ def get_user_input():
         pages = (total + PAGE_SIZE - 1) // PAGE_SIZE  # Общее кол-во страниц для вывода полученных результатов
 
 
+
+
         page = 1
 
         while True:
 
+            clear_screen() # Очистка экрана перед выводом новой страницы
 
+            offset = (page - 1) * PAGE_SIZE
 
+            result = show_films_by(
+                first,
+                year_from,
+                year_to,
+                offset
+            )
 
-            offset = (page - 1) * 10  # Вычисляем значение offset требуемое в SQL-запросах
-            result = show_films_by(first, year_from, year_to, offset)
+            print(result)
+            print()
 
-            print(result, "\n")
-            print(f"Найдено: {total} результата(ов)\nСтраница {page} из {pages}")
+            print(f"Найдено: {total} фильма(ов)")
+            print(f"Страница {page} из {pages}")
 
-            print("\nНажмите [Стрелка вправо] -> далее, [Стрелка влево] -> назад, [f] -> новый поиск, [Esc] -> выход")
-            print("Или просто введите номер страницы и нажмите [Enter]: ")
+            print("\nНажмите [→] - далее, [←] - назад, [f] - новый поиск, [Esc] - выход")
+            print("Или введите номер страницы и нажмите [Enter]: ")
 
+            action, value = get_navigation(page, pages)
 
+            if action == "next":
+                page += 1
 
-            # Ждем первое событие клавиатуры
-            event = keyboard.read_event()
+            elif action == "prev":
+                page -= 1
 
-            # Проверяем, что клавишу именно НАЖАЛИ, а не отпустили
-            if event.event_type == keyboard.KEY_DOWN:
-                key = event.name
+            elif action == "goto":
+                page = value
 
-                # 1. Если это цифра — собираем число
-                if key.isdigit():
-                    user_input = key
-                    print(key, end="", flush=True)  # Печатаем первую цифру без дублей
+            elif action == "search":
 
-                    while True:
+                break
 
-                        next_event = keyboard.read_event()
-                        # Ловим только нажатия клавиш
-                        if next_event.event_type == keyboard.KEY_DOWN:
-                            next_key = next_event.name
+            elif action == "exit":
 
-                            if next_key.isdigit():
-                                user_input += next_key
-                                print(next_key, end="", flush=True)  # Печатаем последующие цифры
-                            elif next_key == "enter":
-                                print()  # Перенос строки
-                                break
+                print("\nСпасибо за использование программы!")
+                return
 
-                    target_page = int(user_input)  # Присваиваем собранное число
-                    if 1 <= target_page <= pages:
-                        page = target_page
-                    else:
-                        clear_screen()  # Очистка экрана перед выводом новой страницы
-                        print(f"Страница под номером {target_page} отсутствует")
-
-                # 2. Если сразу были нажаты стрелки или Esc
-                elif key == "right" and page < pages:
-                    page += 1
-                elif key == "left" and page > 1:
-                    page -= 1
-                elif key == "f":
-                    break
-                elif key == "esc":
-                    # Логика выхода
-                    print("\nСпасибо за использование программы!")
-                    return
-                else:
-                    continue
-
-            else:
-                print("\nНекорректная команда.")
 
 
 

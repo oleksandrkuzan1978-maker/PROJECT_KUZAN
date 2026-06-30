@@ -35,7 +35,7 @@ def main():
     logger.info(f"=== Запуск приложения {db_name} Film Query ===")
     try:
         get_user_input()
-
+        print("\nНекорректная команда.")
         logger.info("=== Все запросы выполнены успешно ===")
         logger.info("Завершение приложения")
     except mysql.connector.Error:
