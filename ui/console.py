@@ -94,14 +94,18 @@ def get_navigation(page, pages):
 
             if page < pages:
                 return "next", None
-            print("\nЭто последняя страница.")
+            else:
+                return "next", 1
+            #print("\nЭто последняя страница.")
 
 
         elif key == "left":
 
             if page > 1:
                 return "prev", None
-            print("\nЭто первая страница.")
+            else:
+                return "prev", pages
+            #print("\nЭто первая страница.")
 
 
         # ---------- Новый поиск ----------
@@ -214,15 +218,21 @@ def get_user_input():
             print(f"Страница {page} из {pages}")
 
             print("\nНажмите [→] - далее, [←] - назад, [f] - новый поиск, [Esc] - выход")
-            print("Или введите номер страницы и нажмите [Enter]: ")
+            print("Или введите номер страницы и нажмите [Enter]: ", end="")
 
             action, value = get_navigation(page, pages)
 
             if action == "next":
-                page += 1
+                if value == 1:
+                    page = 1
+                else:
+                    page += 1
 
             elif action == "prev":
-                page -= 1
+                if value == pages:
+                    page = pages
+                else:
+                    page -= 1
 
             elif action == "goto":
                 page = value
