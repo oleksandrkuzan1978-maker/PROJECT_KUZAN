@@ -37,12 +37,13 @@ def execute_query(cursor, query: str, *params):
         rows = cursor.fetchall() # Методом курсора достаем сразу весь результат запроса из курсора.
                                  # rows - список тюплов. Каждый тюпл - это одна строка таблицы
 
-# Блок определяет, что выводить на экран: количество совпадений по запросам или окончательный рез-т
-        if len(params) in (1, 3): # Если параметры относятся к запросам NAME_TOTAL или GENRES_TOTAL
-            return rows[0][0] # тогда ф-ция возвращает общее количество совпадений по запросам
-        else:
-            headers = [col[0] for col in cursor.description]
-            return tabulate(rows, headers=headers, tablefmt="psql")
+# # Блок определяет, что выводить на экран: количество совпадений по запросам или окончательный рез-т
+#         if len(params) in (1, 3): # Если параметры относятся к запросам NAME_TOTAL или GENRES_TOTAL
+#             return rows[0][0] # тогда ф-ция возвращает общее количество совпадений по запросам
+#         else:
+        return rows, [col[0] for col in cursor.description]
+#             #table = tabulate(rows, headers=headers, tablefmt="psql")
+            #return table
 ###
 
     except TypeError as te:  # Подумать, стоит ли ловить эту ошибку здесь

@@ -30,7 +30,6 @@ logger = logging.getLogger(__name__) # Создаю логгер с именем
                                      # Метод getLogger возвращает объект логгера с именем этого модуля"
 def main():
     # Достаю из переменной (словаря) название БД
-
     db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
     logger.info(f"=== Запуск приложения {db_name} Film Query ===")
     try:
@@ -45,7 +44,6 @@ def main():
         logger.exception("Критическая ошибка в main()")
         print("Произошла ошибка выполнения программы. Проверьте логи.")
         exit(1)
-
 
 if __name__ == "__main__":
     main()

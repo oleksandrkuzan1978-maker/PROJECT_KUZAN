@@ -1,4 +1,4 @@
-
+from tabulate import tabulate
 from config.local_settings import dbconfig
 from database.film_service import (show_total,
                                    show_categories,
@@ -8,17 +8,40 @@ import keyboard
 import os
 import platform
 
+PAGE_SIZE = 10
+
 logger = logging.getLogger(__name__)
 
 # ui/console.py
 
+# Блок определяет, что выводить на экран: количество совпадений по запросам или окончательный рез-т
+# def output_table():
+#         if len(params) in (1, 3): # Если параметры относятся к запросам NAME_TOTAL или GENRES_TOTAL
+#             return rows[0][0] # тогда ф-ция возвращает общее количество совпадений по запросам
+#         else:
+#             headers = [col[0] for col in cursor.description]
+#             table = tabulate(rows, headers=headers, tablefmt="psql")
+
+def check_exit(prompt):
+    """Проверяет, не запросил ли пользователь выход."""
+    value = input(prompt)
+    if value == "q":
+        print("Выход из программы.")
+        raise SystemExit   # генерирует исключение. Если это исключение нигде
+                           # не обработано (try ... except), то выполнение программы полностью прекращается.
+    return value
+
+
 def input_number(message):
+    # Проверяет, является ли введенное значение - числом
     while True:
         value = input(message)
 
         if value.isdigit():
             return int(value)
-
+        elif value == "q":
+            print("\nВыход из программы.")
+            raise SystemExit
         print("Введите число.")
 
 
@@ -31,7 +54,8 @@ def clear_screen():
 
 
 
-def get_navigation(page, pages):
+
+def get_navigation(pages):
     """
     Возвращает действие пользователя.
 
@@ -91,22 +115,10 @@ def get_navigation(page, pages):
         # ---------- Стрелки ----------
 
         elif key == "right":
-
-            if page < pages:
-                return "next", None
-            else:
-                return "next", 1
-            #print("\nЭто последняя страница.")
-
+            return "next", None
 
         elif key == "left":
-
-            if page > 1:
-                return "prev", None
-            else:
-                return "prev", pages
-            #print("\nЭто первая страница.")
-
+            return "prev", None
 
         # ---------- Новый поиск ----------
 
@@ -116,14 +128,14 @@ def get_navigation(page, pages):
 
         # ---------- Выход ----------
 
-        elif key == "esc":
+        elif key == "q":
 
             return "exit", None
 
 
 
 def get_user_input():
-    PAGE_SIZE = 10
+
     db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
 
     while True:
@@ -131,8 +143,9 @@ def get_user_input():
                        "    - выбрать фильм по названию, нажмите \"1\"\n"
                        "    - выбрать фильм по жанру \n"
                        "      и диапазону годов выпуска, нажмите \"2\": ", end="")
-        # print("Для выхода из программы нажмите 'q' и 'Enter'")
-        choice = input()
+        # print("Для выхода из программы нажмите 'Esc'")
+
+        choice = check_exit("")#input()
 
         year_from = None
         year_to = None
@@ -140,8 +153,9 @@ def get_user_input():
         if choice == "1":
             logger.info("Поиск по названию фильма)")
             print()
-            first = f"%{input("\nВведите название фильма: ")}%"
-            total = show_total(first, None, None)
+            first = f"%{check_exit("\nВведите название фильма: ")}%"
+            rows, _ = show_total(first, None, None)
+            total = rows[0][0]
             print(f"\n========= Вывод фильмов из БД '{db_name}' по названию и году выпуска ==========")
 
         elif choice == "2":
@@ -149,16 +163,17 @@ def get_user_input():
             print()
             # Вывод на экран терминала списка жанров
 
-            result3 = show_categories() #, number_genres
+            rows, headers = show_categories() #, number_genres
+            number_genres = len(rows)
 
             print(f"\n======== Список жанров =======")
-            print(result3)
+            print(tabulate(rows, headers=headers, tablefmt="psql"))
 
 
             # Ввод данных для поиска по жанрам и годам
             while True:
                 first = input_number("Введите номер жанра: ")
-                if 1 <= first <= 16: #number_genres:
+                if 1 <= first <= number_genres:
                     break
                 else:
                     print("\n\tВыбранный вами жанр отсутствует в списке")
@@ -174,7 +189,8 @@ def get_user_input():
                     continue
 
 
-            total = show_total(first, year_from, year_to)
+            rows, headers = show_total(first, year_from, year_to)
+            total = rows[0][0]
 
             print(f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' =========")
         elif choice == "q":
@@ -204,14 +220,14 @@ def get_user_input():
 
             offset = (page - 1) * PAGE_SIZE
 
-            result = show_films_by(
+            rows, headers = show_films_by(
                 first,
                 year_from,
                 year_to,
                 offset
             )
 
-            print(result)
+            print(tabulate(rows, headers=headers, tablefmt="psql"))
             print()
 
             print(f"Найдено: {total} фильма(ов)")
@@ -220,29 +236,23 @@ def get_user_input():
             print("\nНажмите [→] - далее, [←] - назад, [f] - новый поиск, [Esc] - выход")
             print("Или введите номер страницы и нажмите [Enter]: ", end="")
 
-            action, value = get_navigation(page, pages)
+            action, value = get_navigation(pages)
 
             if action == "next":
-                if value == 1:
-                    page = 1
-                else:
+                if page < pages:
                     page += 1
-
-            elif action == "prev":
-                if value == pages:
-                    page = pages
                 else:
-                    page -= 1
-
+                    page = 1
+            elif action == "prev":
+                if page > 1:
+                    page -=1
+                else:
+                    page = pages
             elif action == "goto":
                 page = value
-
             elif action == "search":
-
                 break
-
             elif action == "exit":
-
                 print("\nСпасибо за использование программы!")
                 return
 
