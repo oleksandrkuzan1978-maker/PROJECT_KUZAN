@@ -161,6 +161,7 @@ def get_user_input():
         elif choice == "2":
             logger.info("Поиск по жанру и диапазону лет выпуска")
             print()
+
             # Вывод на экран терминала списка жанров
 
             rows, headers = show_categories() #, number_genres
