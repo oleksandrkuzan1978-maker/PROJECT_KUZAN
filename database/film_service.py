@@ -90,11 +90,11 @@ def show_films_by(
             )
 
     except mysql.connector.Error:
-        logger.exception("Ошибка подключения при запросе #1_2 или 2_2")
+        logger.exception("Ошибка подключения при запросе №1_2 или №2_2")
         raise
     finally:
         connection.close()
-        logger.info("Соединение для запроса 1_2, 2_2 закрыто")
+        logger.info("Соединение для запроса №1_2 и №2_2 закрыто")
 
 
 def show_categories():
@@ -109,4 +109,4 @@ def show_categories():
         raise
     finally:
         connection.close()
-        logger.info("Соединение для запроса 3 закрыто")
+        logger.info("Соединение для запроса №3 закрыто")
