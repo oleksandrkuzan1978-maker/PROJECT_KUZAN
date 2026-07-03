@@ -2,7 +2,8 @@ from tabulate import tabulate
 from config.local_settings import dbconfig
 from database.film_service import (show_total,
                                    show_categories,
-                                   show_films_by)
+                                   show_films_by_name,
+                                   show_films_by_genre)
 import logging
 import keyboard
 import os
@@ -14,21 +15,13 @@ logger = logging.getLogger(__name__)
 
 # ui/console.py
 
-# Блок определяет, что выводить на экран: количество совпадений по запросам или окончательный рез-т
-# def output_table():
-#         if len(params) in (1, 3): # Если параметры относятся к запросам NAME_TOTAL или GENRES_TOTAL
-#             return rows[0][0] # тогда ф-ция возвращает общее количество совпадений по запросам
-#         else:
-#             headers = [col[0] for col in cursor.description]
-#             table = tabulate(rows, headers=headers, tablefmt="psql")
-
 def check_exit(prompt):
     """Проверяет, не запросил ли пользователь выход."""
     value = input(prompt)
     if value == "q":
         print("Выход из программы.")
-        raise SystemExit   # генерирует исключение. Если это исключение нигде
-                           # не обработано (try ... except), то выполнение программы полностью прекращается.
+        raise SystemExit   # Генерирует исключение. Если это исключение нигде
+                           # Не обработано (try ... except), то выполнение программы полностью прекращается.
     return value
 
 
@@ -138,25 +131,28 @@ def get_user_input():
 
     db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
 
+
     while True:
-        print("\nВыберите, пожалуйста, критерии подбора фильмов:\n"
+
+        print("\n\nВыберите, пожалуйста, критерии подбора фильмов:\n"
                        "    - выбрать фильм по названию, нажмите \"1\"\n"
                        "    - выбрать фильм по жанру \n"
                        "      и диапазону годов выпуска, нажмите \"2\": ", end="")
-        # print("Для выхода из программы нажмите 'Esc'")
 
-        choice = check_exit("")#input()
 
-        year_from = None
-        year_to = None
+        choice = check_exit("")
 
         if choice == "1":
             logger.info("Поиск по названию фильма)")
             print()
-            first = f"%{check_exit("\nВведите название фильма: ")}%"
-            rows, _ = show_total(first, None, None)
+            name = f"%{check_exit("\nВведите название фильма: ")}%"
+            rows, _ = show_total(name, None, None)
             total = rows[0][0]
+
             print(f"\n========= Вывод фильмов из БД '{db_name}' по названию и году выпуска ==========")
+
+            fetch_function = show_films_by_name
+            fetch_args = (name,)
 
         elif choice == "2":
             logger.info("Поиск по жанру и диапазону лет выпуска")
@@ -164,7 +160,7 @@ def get_user_input():
 
             # Вывод на экран терминала списка жанров
 
-            rows, headers = show_categories() #, number_genres
+            rows, headers = show_categories()
             number_genres = len(rows)
 
             print(f"\n======== Список жанров =======")
@@ -173,8 +169,8 @@ def get_user_input():
 
             # Ввод данных для поиска по жанрам и годам
             while True:
-                first = input_number("Введите номер жанра: ")
-                if 1 <= first <= number_genres:
+                genre = input_number("Введите номер жанра: ")
+                if 1 <= genre <= number_genres:
                     break
                 else:
                     print("\n\tВыбранный вами жанр отсутствует в списке")
@@ -190,10 +186,16 @@ def get_user_input():
                     continue
 
 
-            rows, headers = show_total(first, year_from, year_to)
+            rows, headers = show_total(genre, year_from, year_to)
             total = rows[0][0]
 
             print(f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' =========")
+
+            fetch_function = show_films_by_genre
+            fetch_args = (genre, year_from, year_to)
+
+
+
         elif choice == "q":
             print("\nСпасибо за использование программы!")
             return
@@ -212,7 +214,6 @@ def get_user_input():
 
 
 
-
         page = 1
 
         while True:
@@ -221,13 +222,13 @@ def get_user_input():
 
             offset = (page - 1) * PAGE_SIZE
 
-            rows, headers = show_films_by(
-                first,
-                year_from,
-                year_to,
-                offset
-            )
 
+            # Получение результатов выполнения ф-ций show_films_by_name и show_films_by_genre
+            rows, headers = fetch_function(
+                *fetch_args,
+                offset)
+
+            # Вывод результатов в виде таблицы на экран
             print(tabulate(rows, headers=headers, tablefmt="psql"))
             print()
 

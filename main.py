@@ -27,7 +27,7 @@ import logging
 setup_logging()
 
 logger = logging.getLogger(__name__) # Создаю логгер с именем "main".
-                                     # Метод getLogger возвращает объект логгера с именем этого модуля"
+                                     # Метод getLogger возвращает объект логгера с именем этого модуля
 def main():
     # Достаю из переменной (словаря) название БД
     db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
