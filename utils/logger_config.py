@@ -61,6 +61,7 @@ def setup_logging():
         encoding="utf-8"
     )
     # -//- для вывода в консоль
+    #
     console_handler = logging.StreamHandler(sys.stdout)
 
     # В форматерах задаем формат вывода лог-сообщений
@@ -86,8 +87,8 @@ def setup_logging():
     logging.basicConfig(
         level=logging.DEBUG,
         handlers=[      # Все сообщения логирования отправлять одновременно в файл на экран терминала
-            file_handler,
-            console_handler
+            file_handler#,
+            #console_handler
         ]
     )
 

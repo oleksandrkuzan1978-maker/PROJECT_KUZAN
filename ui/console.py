@@ -1,5 +1,5 @@
 from tabulate import tabulate
-from colorama import Fore, init #, Style
+from colorama import Fore, init, Style
 from config.local_settings import dbconfig
 # from database.mongo_history import save_query
 from database.film_service import (show_total,
@@ -8,16 +8,18 @@ from database.film_service import (show_total,
                                    show_films_by_genre)
 import mysql.connector
 import logging
-import keyboard
+#import keyboard
 import os
 import platform
 
 logger = logging.getLogger(__name__)
 
+db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
+
 logger.info("Запуск консольного интерфейса")
 
 PAGE_SIZE = 10
-init(autoreset=True)
+init(autoreset=True) # Для разноцветного ввода
 
 
 # ui/console.py
@@ -53,102 +55,134 @@ def clear_screen():
     os.system(command)
 
 
-
-
-
 def get_navigation(pages):
-    """
-    Возвращает действие пользователя.
-
-    Возможные значения:
-        ("next", None)
-        ("prev", None)
-        ("search", None)
-        ("exit", None)
-        ("goto", page_number)
-    """
-
+    # Вариант для input
     while True:
-        # Ждем первое событие клавиатуры
-        event = keyboard.read_event()
+        command = input(
+            "\nНажмите [n] - далее, [p] - назад, [f] - новый поиск, "
+            "[q] - выход или введите номер страницы: "
+        ).strip().lower()
 
-        if event.event_type != keyboard.KEY_DOWN:
-            continue
-
-        key = event.name  # Проверяем, что клавишу именно НАЖАЛИ, а не отпустили
-
-        # ---------- Ввод номера страницы ----------
-        # 1. Если это цифра — собираем число
-        if key.isdigit():
-
-            user_input = key
-            print(key, end="", flush=True) # Печатаем первую цифру без дублей
-
-            while True:
-
-                next_event = keyboard.read_event()
-
-                if next_event.event_type != keyboard.KEY_DOWN:
-                    continue
-
-                next_key = next_event.name # Ловим только нажатия клавиш
-
-                if next_key.isdigit():
-
-                    user_input += next_key
-                    print(next_key, end="", flush=True)
-
-                elif next_key == "enter":
-
-                    print()
-                    break
-
-            target_page = int(user_input) # Присваиваем собранное число
-
-            if 1 <= target_page <= pages:
-                return "goto", target_page
-
-            print(Fore.RED + f"\nСтраница {target_page} отсутствует.")
-            print(f"Введите правильный номер страницы: ", end="")
-            continue
-
-
-        # ---------- Стрелки ----------
-
-        elif key == "right":
+        if command == "n":
             return "next", None
 
-        elif key == "left":
+        if command == "p":
             return "prev", None
 
-        # ---------- Новый поиск ----------
-
-        elif key == "f":
-
+        if command == "f":
             return "search", None
 
-        # ---------- Выход ----------
-
-        elif key == "q":
-
+        if command == "q":
             return "exit", None
 
+        if command.isdigit():
+            page = int(command)
+
+            if 1 <= page <= pages:
+                return "goto", page
+
+            print(Fore.RED + f"\n\tСтраница {page} отсутствует.")
+            continue
+
+        print(Fore.RED + "\n\tВвод некорректного значения.")
+
+    # """
+    # Возвращает действие пользователя.
+    #
+    # Возможные значения:
+    #     ("next", None)
+    #     ("prev", None)
+    #     ("search", None)
+    #     ("exit", None)
+    #     ("goto", page_number)
+    # """
+    #
+    # while True:
+    #     # Ждем первое событие клавиатуры
+    #     event = keyboard.read_event()
+    #
+    #     if event.event_type != keyboard.KEY_DOWN:
+    #         continue
+    #
+    #     key = event.name  # Проверяем, что клавишу именно НАЖАЛИ, а не отпустили
+    #
+    #     # ---------- Ввод номера страницы ----------
+    #     # 1. Если это цифра — собираем число
+    #     if key.isdigit():
+    #
+    #         user_input = key
+    #         print(key, end="", flush=True) # Печатаем первую цифру без дублей
+    #
+    #         while True:
+    #
+    #             next_event = keyboard.read_event()
+    #
+    #             if next_event.event_type != keyboard.KEY_DOWN:
+    #                 continue
+    #
+    #             next_key = next_event.name # Ловим только нажатия клавиш
+    #
+    #             if next_key.isdigit():
+    #
+    #                 user_input += next_key
+    #                 print(next_key, end="", flush=True)
+    #
+    #             elif next_key == "enter":
+    #
+    #                 print()
+    #                 break
+    #
+    #         target_page = int(user_input) # Присваиваем собранное число
+    #
+    #         if 1 <= target_page <= pages:
+    #             return "goto", target_page
+    #
+    #         print(Fore.RED + f"\nСтраница {target_page} отсутствует.")
+    #         print(f"Введите правильный номер страницы: ", end="")
+    #         continue
+    #
+    #
+    #     # ---------- Стрелки ----------
+    #
+    #     elif key == "right":
+    #         return "next", None
+    #
+    #     elif key == "left":
+    #         return "prev", None
+    #
+    #     # ---------- Новый поиск ----------
+    #
+    #     elif key == "f":
+    #
+    #         return "search", None
+    #
+    #     # ---------- Выход ----------
+    #
+    #     elif key == "q":
+    #
+    #         return "exit", None
 
 
-def show_paginated_results(fetch_function, fetch_args, total):
+
+def show_paginated_results(fetch_function, fetch_args, info_args):
+    total, title, genre = info_args
     pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
     page = 1
 
     while True:
         clear_screen()
-
+        print(Fore.YELLOW + title)
         offset = (page - 1) * PAGE_SIZE
         rows, headers = fetch_function(*fetch_args, offset)
 
         print(tabulate(rows, headers=headers, tablefmt="psql"))
         print()
+        if genre is not None:
+            print(Fore.CYAN + "Жанр:"+ Style.RESET_ALL + Fore.WHITE, genre)
         print(f"Найдено: {total} фильма(ов)")
         print(f"Страница {page} из {pages}")
+        # print("\nНажмите [→] - далее, [←] - назад, [f] - новый поиск, [q] - выход")
+        # print("Или введите номер страницы и нажмите [Enter]: ", end="")
 
         action, value = get_navigation(pages)
 
@@ -167,44 +201,40 @@ def show_paginated_results(fetch_function, fetch_args, total):
         elif action == "exit":
             print(Fore.CYAN + "\nСпасибо за использование программы!")
             return "exit"
-    print("\nНажмите [→] - далее, [←] - назад, [f] - новый поиск, [q] - выход")
-    print("Или введите номер страницы и нажмите [Enter]: ", end="")
+
 
     return "search"
-
 
 
 def get_user_input():
 
     logger.info("Запущен модуль пользовательского ввода")
 
-    db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
-
-    print(Fore.YELLOW + f"=== Приложение {db_name.upper()} Film Query ===")
+    print(Fore.YELLOW + f"\n=== Приложение {db_name.upper()} Film Query ===")
     print(Fore.YELLOW + "___ Поиск фильмов на любой вкус ___")
 
     while True:
 
-        print("\n\nВыберите критерий поиска:\n"
-                       "    - по названию, нажмите \'1\'\n"
+        choice = check_exit(Fore.GREEN + "\n\nВыберите критерий поиска:\n" + Style.RESET_ALL + Fore.WHITE +
+                       "    - по названию, нажмите " + Style.RESET_ALL + Fore.GREEN + "\'1\'\n" + Style.RESET_ALL + Fore.WHITE +
                        "    - по жанру и диапазону\n"
-                       "      годов выпуска, нажмите\'2\': ", end="")
-
-
-        choice = check_exit("")
+                       "    годов выпуска, нажмите " + Style.RESET_ALL + Fore.GREEN + "\'2\': " + Style.RESET_ALL + Fore.WHITE)
         try:
             if choice == "1":
                 logger.info("Пользователь выбрал поиск по названию фильма")
                 print()
                 name = f"%{check_exit('\nВведите название фильма: ')}%"
 
-                rows, _ = show_total(name, None, None)
-                total = rows[0][0]
+                total = show_total(name, None, None)
+                if total == 0:
+                    print("По данному запросу фильмы не найдены.")
+                    continue
 
-                print(Fore.YELLOW + f"\n========= Вывод фильмов из БД '{db_name}' по названию и году выпуска ==========")
+                title = f"\n========= Вывод фильмов из БД '{db_name}' по названию =========="
 
                 fetch_function = show_films_by_name
                 fetch_args = (name,)
+                info_args = (total, title, None)
                 # save_query(name, None, None) # Запись запроса в коллекцию MongoDB
 
             elif choice == "2":
@@ -221,7 +251,7 @@ def get_user_input():
 
                 # Ввод данных для поиска по жанрам и годам
                 while True:
-                    num_genre = input_number("Введите номер жанра: ")
+                    num_genre = input_number(Fore.GREEN + "Введите номер жанра: " + Style.RESET_ALL + Fore.WHITE)
                     if 1 <= num_genre <= number_genres:
                         # ccc = rows
 
@@ -231,22 +261,26 @@ def get_user_input():
                         continue
 
                 while True:
-                    year_from = input_number("Введите начальный год диапазона (4 цифры): ")
-                    year_to = input_number("Введите конечный год диапазона (4 цифры): ")
+                    year_from = input_number(Fore.WHITE + "Введите начальный год диапазона (4 цифры): ")
+                    year_to = input_number(Fore.WHITE + "Введите конечный год диапазона (4 цифры): ")
                     if len(str(year_from)) == len(str(year_to)) == 4 and year_from <= year_to:
                         break
                     else:
-                        print(Fore.RED + "Некорректный ввод года")
+                        print(Fore.RED + "\n\tНекорректный ввод года")
                         continue
 
-                rows, _ = show_total(num_genre, year_from, year_to)
-                total = rows[0][0]
+                total = show_total(num_genre, year_from, year_to)
+                if total == 0:
+                    print("По данному запросу фильмы не найдены.")
+                    continue
 
-                print(Fore.YELLOW + f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' =========")
-
+                title = f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' ========="
+                genre = rows[num_genre][1]
                 fetch_function = show_films_by_genre
                 fetch_args = (num_genre, year_from, year_to)
-                #genre = rows[num_genre][1] # Название выбранного жанра
+                info_args = (total, title, genre)
+                 # Название выбранного жанра
+
 
                 # save_query(genre, year_from, year_to) # Запись запроса в коллекцию MongoDB
 
@@ -254,26 +288,26 @@ def get_user_input():
             elif choice == "q":
                 print(Fore.CYAN + "\nСпасибо за использование программы!")
                 return
-
-
             else:
                 print(Fore.RED + "\nВы ввели некорректный символ для выбора.\n")
                 continue # Возвращаем в начало цикла, если выбор неверный
 
-            if total == 0:
-                print("По данному запросу фильмы не найдены.")
-                continue
+            # if total == 0:
+            #     print("По данному запросу фильмы не найдены.")
+            #     continue
+
+            result = show_paginated_results(fetch_function, fetch_args, info_args)
+
+            if result == "exit":
+                return #exit()
 
         except mysql.connector.Error:
             print(Fore.RED + "Ошибка при обращении к базе данных. Попробуйте позже.")
             logger.exception("Ошибка БД в консольном интерфейсе")
             continue
 
-        result = show_paginated_results(fetch_function, fetch_args, total)
 
 
-        if result == "exit":
-            return
 
 
 

@@ -46,15 +46,14 @@ def show_total(name_or_genre, year_from, year_to):
     try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
         cursor = connection.cursor()
         if not year_from:
-            return execute_query(cursor,  # Общее кол-во совпадений по запросу
-                                  NAME_TOTAL,
-                                 name_or_genre)
+            rows, _ = execute_query(cursor,  # Общее кол-во совпадений по запросу
+                                    NAME_TOTAL,
+                                   name_or_genre)
         else:
-            return execute_query(cursor,  # Общее кол-во совпадений по запросу
+            rows, _ = execute_query(cursor,  # Общее кол-во совпадений по запросу
                                   GENRES_TOTAL,
                                   name_or_genre, year_from, year_to)
-
-
+        return rows[0][0]
 
     except mysql.connector.Error:
         logger.exception("Ошибка подключения при запросе №1_1 или 2_1")
