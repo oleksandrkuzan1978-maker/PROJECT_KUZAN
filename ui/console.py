@@ -135,6 +135,45 @@ def get_navigation(pages):
 
 
 
+def show_paginated_results(fetch_function, fetch_args, total):
+    pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
+    page = 1
+
+    while True:
+        clear_screen()
+
+        offset = (page - 1) * PAGE_SIZE
+        rows, headers = fetch_function(*fetch_args, offset)
+
+        print(tabulate(rows, headers=headers, tablefmt="psql"))
+        print()
+        print(f"Найдено: {total} фильма(ов)")
+        print(f"Страница {page} из {pages}")
+
+        action, value = get_navigation(pages)
+
+        if action == "next":
+            page = page + 1 if page < pages else 1
+
+        elif action == "prev":
+            page = page - 1 if page > 1 else pages
+
+        elif action == "goto":
+            page = value
+
+        elif action == "search":
+            break
+
+        elif action == "exit":
+            print(Fore.CYAN + "\nСпасибо за использование программы!")
+            return "exit"
+    print("\nНажмите [→] - далее, [←] - назад, [f] - новый поиск, [q] - выход")
+    print("Или введите номер страницы и нажмите [Enter]: ", end="")
+
+    return "search"
+
+
+
 def get_user_input():
 
     logger.info("Запущен модуль пользовательского ввода")
@@ -230,58 +269,14 @@ def get_user_input():
             logger.exception("Ошибка БД в консольном интерфейсе")
             continue
 
-        pages = (total + PAGE_SIZE - 1) // PAGE_SIZE  # Общее кол-во страниц для вывода полученных результатов
+        result = show_paginated_results(fetch_function, fetch_args, total)
+
+
+        if result == "exit":
+            return
 
 
 
-        page = 1
-
-        while True:
-
-            clear_screen() # Очистка экрана перед выводом новой страницы
-
-            offset = (page - 1) * PAGE_SIZE
-
-
-            # Получение результатов выполнения ф-ций show_films_by_name и show_films_by_genre
-            try:
-                rows, headers = fetch_function(
-                    *fetch_args,
-                    offset)
-            except mysql.connector.Error:
-                print(Fore.RED + "Не удалось загрузить страницу с фильмами.")
-                logger.exception("Ошибка БД при загрузке страницы результатов")
-                break
-
-            # Вывод результатов в виде таблицы на экран
-            print(tabulate(rows, headers=headers, tablefmt="psql"))
-            print()
-            #print(ccc[num_genre][1])
-            print(f"Найдено: {total} фильма(ов)")
-            print(f"Страница {page} из {pages}")
-
-            print("\nНажмите [→] - далее, [←] - назад, [f] - новый поиск, [q] - выход")
-            print("Или введите номер страницы и нажмите [Enter]: ", end="")
-
-            action, value = get_navigation(pages)
-
-            if action == "next":
-                if page < pages:
-                    page += 1
-                else:
-                    page = 1
-            elif action == "prev":
-                if page > 1:
-                    page -=1
-                else:
-                    page = pages
-            elif action == "goto":
-                page = value
-            elif action == "search":
-                break
-            elif action == "exit":
-                print(Fore.CYAN + "\nСпасибо за использование программы!")
-                return
 
 
 
