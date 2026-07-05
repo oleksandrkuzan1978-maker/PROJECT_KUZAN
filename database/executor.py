@@ -26,7 +26,7 @@ import mysql.connector
 import logging
 
 logger = logging.getLogger(__name__)  # Создаю логгер с именем "executor".
-                                      # Метод getLogger возвращает объект логгера с именем этого модуля".
+                                      # Метод getLogger возвращает объект логгера с именем этого модуля.
 
 def execute_query(cursor, query: str, *params):
 
@@ -35,7 +35,7 @@ def execute_query(cursor, query: str, *params):
         cursor.execute(query, params) # Выполняется SQL-запрос. Результат хранится внутри курсора
 
         rows = cursor.fetchall() # Методом курсора достаем сразу весь результат запроса из курсора.
-                                 # rows - список тюплов. Каждый тюпл - это одна строка таблицы
+                                 # Переменная rows - список кортежей. Каждый кортеж - это одна строка таблицы
         return rows, [col[0] for col in cursor.description] # второй эл-нт - это шапка таблицы рез-тов
 #
 ###

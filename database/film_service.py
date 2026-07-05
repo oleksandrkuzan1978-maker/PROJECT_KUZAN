@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__) # Создаю логгер с именем
 
 
 # Ф-ция возвращает общее кол-во совпадений по запросу
-def show_total(name_genre, year_from, year_to):
+def show_total(name_or_genre, year_from, year_to):
 
     connection = get_connection()
     try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
@@ -48,12 +48,12 @@ def show_total(name_genre, year_from, year_to):
         if not year_from:
             return execute_query(cursor,  # Общее кол-во совпадений по запросу
                                   NAME_TOTAL,
-                                 name_genre)
+                                 name_or_genre)
         else:
             return execute_query(cursor,  # Общее кол-во совпадений по запросу
                                   GENRES_TOTAL,
-                                  name_genre, year_from, year_to)
-        #return total, number_genres
+                                  name_or_genre, year_from, year_to)
+
 
 
     except mysql.connector.Error:
@@ -87,7 +87,7 @@ def show_films_by_name(
 
 
 def show_films_by_genre(
-        genre: int,
+        num_genre: int,
         year_from: int,
         year_to: int,
         offset: int):
@@ -99,7 +99,7 @@ def show_films_by_genre(
         return execute_query(
             cursor,
             GET_BY_GENRES_AND_YEARS,
-            genre,
+            num_genre,
             year_from,
             year_to,
             offset)
