@@ -286,7 +286,7 @@ def get_user_input():
 
 
             elif choice == "q":
-                print(Fore.CYAN + "\nСпасибо за использование программы!")
+                print(Fore.CYAN + "\nСпасибо за использование программы!\n")
                 return
             else:
                 print(Fore.RED + "\nВы ввели некорректный символ для выбора.\n")
