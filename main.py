@@ -24,6 +24,7 @@ from config.local_settings import dbconfig
 
 import logging
 
+
 setup_logging()
 
 logger = logging.getLogger(__name__) # Создаю логгер с именем "main".

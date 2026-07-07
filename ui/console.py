@@ -1,7 +1,7 @@
 from tabulate import tabulate
 from colorama import Fore, init, Style
 from config.local_settings import dbconfig
-# from database.mongo_history import save_query
+#from database.mongo_history import save_query
 from database.film_service import (show_total,
                                    show_categories,
                                    show_films_by_name,
@@ -235,7 +235,7 @@ def get_user_input():
                 fetch_function = show_films_by_name
                 fetch_args = (name,)
                 info_args = (total, title, None)
-                # save_query(name, None, None) # Запись запроса в коллекцию MongoDB
+                save_query(name, None, None) # Запись запроса в коллекцию MongoDB
 
             elif choice == "2":
                 logger.info("Пользователь выбрал поиск по жанру и диапазону лет выпуска")
@@ -282,7 +282,7 @@ def get_user_input():
                  # Название выбранного жанра
 
 
-                # save_query(genre, year_from, year_to) # Запись запроса в коллекцию MongoDB
+                #save_query(genre, year_from, year_to) # Запись запроса в коллекцию MongoDB
 
 
             elif choice == "q":
@@ -291,10 +291,6 @@ def get_user_input():
             else:
                 print(Fore.RED + "\nВы ввели некорректный символ для выбора.\n")
                 continue # Возвращаем в начало цикла, если выбор неверный
-
-            # if total == 0:
-            #     print("По данному запросу фильмы не найдены.")
-            #     continue
 
             result = show_paginated_results(fetch_function, fetch_args, info_args)
 

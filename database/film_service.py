@@ -40,12 +40,12 @@ logger = logging.getLogger(__name__) # Создаю логгер с именем
 
 
 # Ф-ция возвращает общее кол-во совпадений по запросу
-def show_total(name_or_genre, year_from, year_to):
+def show_total(name_or_genre, year_from=None, year_to=None):
 
     connection = get_connection()
     try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
         cursor = connection.cursor()
-        if not year_from:
+        if year_from is None:
             rows, _ = execute_query(cursor,  # Общее кол-во совпадений по запросу
                                     NAME_TOTAL,
                                    name_or_genre)
