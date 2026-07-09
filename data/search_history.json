@@ -1,0 +1,21 @@
+[
+    {
+        "search_type": "by_name",
+        "query": "%as%",
+        "created_at": "2026-07-09T07:59:22.272929"
+    },
+    {
+        "search_type": "by_genre_years",
+        "genre_id": "Sci-Fi",
+        "year_from": 1234,
+        "year_to": 2007,
+        "created_at": "2026-07-09T07:59:45.844535"
+    },
+    {
+        "search_type": "by_genre_years",
+        "genre_id": "New",
+        "year_from": 1997,
+        "year_to": 1997,
+        "created_at": "2026-07-09T08:00:08.384010"
+    }
+]

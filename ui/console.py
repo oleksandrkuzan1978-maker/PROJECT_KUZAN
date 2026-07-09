@@ -1,7 +1,7 @@
 from tabulate import tabulate
 from colorama import Fore, init, Style
 from config.local_settings import dbconfig
-#from database.mongo_history import save_query
+from database.mongo_history import save_query
 from database.film_service import (show_total,
                                    show_categories,
                                    show_films_by_name,
@@ -282,7 +282,7 @@ def get_user_input():
                  # Название выбранного жанра
 
 
-                #save_query(genre, year_from, year_to) # Запись запроса в коллекцию MongoDB
+                save_query(genre, year_from, year_to) # Запись запроса в коллекцию MongoDB
 
 
             elif choice == "q":
