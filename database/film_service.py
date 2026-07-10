@@ -32,27 +32,28 @@ from database.queries import (
     GET_BY_GENRES_AND_YEARS,
     GET_GENRES
 )
-
+from typing import Any
 import logging
 
-logger = logging.getLogger(__name__) # Создаю логгер с именем "file_service".
-                                     # Метод getLogger возвращает объект логгера с именем этого модуля.
+logger = logging.getLogger(__name__)  # Создаю логгер с именем "file_service".
+
+
+# Метод getLogger возвращает объект логгера с именем этого модуля.
 
 
 # Ф-ция возвращает общее кол-во совпадений по запросу
-def show_total(name_or_genre, year_from=None, year_to=None):
-
+def show_total(name_or_genre: str | int, year_from=None, year_to=None) -> int:
     connection = get_connection()
     try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
         cursor = connection.cursor()
         if year_from is None:
             rows, _ = execute_query(cursor,  # Общее кол-во совпадений по запросу
                                     NAME_TOTAL,
-                                   name_or_genre)
+                                    name_or_genre)
         else:
             rows, _ = execute_query(cursor,  # Общее кол-во совпадений по запросу
-                                  GENRES_TOTAL,
-                                  name_or_genre, year_from, year_to)
+                                    GENRES_TOTAL,
+                                    name_or_genre, year_from, year_to)
         return rows[0][0]
 
     except mysql.connector.Error:
@@ -64,9 +65,8 @@ def show_total(name_or_genre, year_from=None, year_to=None):
 
 
 def show_films_by_name(
-        name,
-        offset: int):
-
+        name: str,
+        offset: int) -> tuple[list[tuple[Any, ...]], list[str]]:
     connection = get_connection()
     try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
         cursor = connection.cursor()
@@ -84,13 +84,11 @@ def show_films_by_name(
         logger.info("Соединение для запроса №1_2 закрыто")
 
 
-
 def show_films_by_genre(
         num_genre: int,
         year_from: int,
         year_to: int,
-        offset: int):
-
+        offset: int) -> tuple[list[tuple[Any, ...]], list[str]]:
     connection = get_connection()
     try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
         cursor = connection.cursor()
@@ -111,8 +109,7 @@ def show_films_by_genre(
         logger.info("Соединение для запроса №1_2 и №2_2 закрыто")
 
 
-
-def show_categories():
+def show_categories()-> tuple[list[tuple[Any, ...]], list[str]]:
     connection = get_connection()
     try:
         cursor = connection.cursor()

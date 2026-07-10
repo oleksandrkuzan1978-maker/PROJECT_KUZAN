@@ -1,3 +1,5 @@
+from typing import Any
+
 from tabulate import tabulate
 from colorama import Fore, init, Style
 from config.local_settings import dbconfig
@@ -24,18 +26,17 @@ init(autoreset=True) # Для разноцветного ввода
 
 # ui/console.py
 
-def check_exit(prompt):
+def check_exit(prompt:str) -> str:
     """Проверяет, не запросил ли пользователь выход."""
     value = input(prompt).strip().lower()
     if value == "q":
-
         print(Fore.CYAN + "Выход из программы.")
         raise SystemExit   # Генерирует исключение. Если это исключение нигде
                            # Не обработано (try ... except), то выполнение программы полностью прекращается.
     return value
 
 
-def input_number(message):
+def input_number(message:str) -> int | str:
     # Проверяет, является ли введенное значение - числом
     while True:
         value = input(message).strip().lower()
@@ -49,13 +50,13 @@ def input_number(message):
 
 
 # Ф-ция очистки экрана
-def clear_screen():
+def clear_screen() -> None:
     # Если ОС Windows, берем 'cls', иначе (macOS/Linux) — 'clear'
     command = 'cls' if platform.system().lower() == 'windows' else 'clear'
     os.system(command)
 
 
-def get_navigation(pages):
+def get_navigation(pages: int) -> tuple[str, None | int] | None:
     # Вариант для input
     while True:
         command = input(
@@ -164,7 +165,10 @@ def get_navigation(pages):
 
 
 
-def show_paginated_results(fetch_function, fetch_args, info_args):
+def show_paginated_results(fetch_function
+                           , fetch_args: tuple[str|int]
+                           , info_args:tuple[int, str, Any]) -> str:
+
     total, title, genre = info_args
     pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
     page = 1
@@ -206,7 +210,7 @@ def show_paginated_results(fetch_function, fetch_args, info_args):
     return "search"
 
 
-def get_user_input():
+def get_user_input() -> None:
 
     logger.info("Запущен модуль пользовательского ввода")
 
@@ -244,10 +248,10 @@ def get_user_input():
                 # Вывод на экран терминала списка жанров
                 rows, headers = show_categories()
                 number_genres = len(rows)
+                print(number_genres)
 
                 print(Fore.YELLOW + f"\n======== Список жанров =======")
                 print(tabulate(rows, headers=headers, tablefmt="psql"))
-
 
                 # Ввод данных для поиска по жанрам и годам
                 while True:
@@ -275,7 +279,8 @@ def get_user_input():
                     continue
 
                 title = f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' ========="
-                genre = rows[num_genre][1]
+                genre = rows[num_genre-1][1]
+
                 fetch_function = show_films_by_genre
                 fetch_args = (num_genre, year_from, year_to)
                 info_args = (total, title, genre)

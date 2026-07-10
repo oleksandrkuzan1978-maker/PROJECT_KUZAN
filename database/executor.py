@@ -22,13 +22,17 @@
 # database/executor.py
 # from config.local_settings import dbconfig
 # from tabulate import tabulate
+
+from typing import Any
+
+from mysql.connector.cursor import MySQLCursorAbstract
 import mysql.connector
 import logging
 
 logger = logging.getLogger(__name__)  # Создаю логгер с именем "executor".
                                       # Метод getLogger возвращает объект логгера с именем этого модуля.
 
-def execute_query(cursor, query: str, *params):
+def execute_query(cursor:MySQLCursorAbstract, query: str, *params:Any,) -> tuple[list[tuple[Any, ...]], list[str]]:
 
     try:  #В этом модуле стоит ловить ошибки выполнения SQL
         logger.info("Выполнение SQL-запроса к БД")
