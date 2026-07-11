@@ -1,10 +1,489 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+    <head>
+<!---       <meta charset="utf-8">  -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Bootstrap demo</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    </head>
+    <body>
+        <!-- Это шаблон страницы с пред-подключённым Bootstrap -->
+        <!-- Менять код можно ТОЛЬКО в пределах от "Начала страницы" до "Конца страницы" -->
 
-</body>
+        <!-- Начало страницы -->
+     <!-- Начало страницы -->
+
+<!-- Верхняя панель сайта -->
+<nav class="navbar navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">
+            🎬 Sakila Movie Search
+        </a>
+    </div>
+</nav>
+
+
+<!-- Заголовок страницы -->
+<header class="bg-primary text-white py-5">
+    <div class="container text-center">
+        <h1 class="display-5 fw-bold">
+            Поиск фильмов
+        </h1>
+
+        <p class="lead mb-0">
+            Найдите фильмы по названию, жанру или году выпуска
+        </p>
+    </div>
+</header>
+
+
+<!-- Основное содержимое страницы -->
+<main class="container py-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-12 col-lg-9">
+
+            <!-- Карточка с формой поиска -->
+            <div class="card border-0 shadow">
+
+                <div class="card-body p-4 p-md-5">
+
+                    <h2 class="text-center mb-4">
+                        Выберите вариант поиска
+                    </h2>
+
+
+                    <!-- Вкладки -->
+                    <ul
+                        class="nav nav-pills nav-fill mb-4"
+                        id="searchTabs"
+                        role="tablist"
+                    >
+
+                        <li class="nav-item" role="presentation">
+                            <button
+                                class="nav-link active"
+                                id="title-tab"
+                                data-bs-toggle="tab"
+                                data-bs-target="#title-search"
+                                type="button"
+                                role="tab"
+                            >
+                                По названию
+                            </button>
+                        </li>
+
+                        <li class="nav-item" role="presentation">
+                            <button
+                                class="nav-link"
+                                id="genre-tab"
+                                data-bs-toggle="tab"
+                                data-bs-target="#genre-search"
+                                type="button"
+                                role="tab"
+                            >
+                                По жанру
+                            </button>
+                        </li>
+
+                        <li class="nav-item" role="presentation">
+                            <button
+                                class="nav-link"
+                                id="years-tab"
+                                data-bs-toggle="tab"
+                                data-bs-target="#years-search"
+                                type="button"
+                                role="tab"
+                            >
+                                По годам
+                            </button>
+                        </li>
+
+                        <li class="nav-item" role="presentation">
+                            <button
+                                class="nav-link"
+                                id="genre-years-tab"
+                                data-bs-toggle="tab"
+                                data-bs-target="#genre-years-search"
+                                type="button"
+                                role="tab"
+                            >
+                                Жанр и годы
+                            </button>
+                        </li>
+
+                    </ul>
+
+
+                    <!-- Содержимое вкладок -->
+                    <div class="tab-content">
+
+                        <!-- Поиск по названию -->
+                        <div
+                            class="tab-pane fade show active"
+                            id="title-search"
+                            role="tabpanel"
+                        >
+
+                            <form>
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="film-title"
+                                        class="form-label"
+                                    >
+                                        Название фильма
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        class="form-control form-control-lg"
+                                        id="film-title"
+                                        name="title"
+                                        placeholder="Например: academy"
+                                    >
+
+                                    <div class="form-text">
+                                        Можно ввести полное название или его часть.
+                                    </div>
+
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary btn-lg w-100"
+                                >
+                                    Найти фильмы
+                                </button>
+
+                            </form>
+
+                        </div>
+
+
+                        <!-- Поиск по жанру -->
+                        <div
+                            class="tab-pane fade"
+                            id="genre-search"
+                            role="tabpanel"
+                        >
+
+                            <form>
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="film-genre"
+                                        class="form-label"
+                                    >
+                                        Выберите жанр
+                                    </label>
+
+                                    <select
+                                        class="form-select form-select-lg"
+                                        id="film-genre"
+                                        name="genre"
+                                    >
+
+                                        <option value="" selected>
+                                            Выберите жанр
+                                        </option>
+
+                                        <option value="action">
+                                            Action
+                                        </option>
+
+                                        <option value="animation">
+                                            Animation
+                                        </option>
+
+                                        <option value="comedy">
+                                            Comedy
+                                        </option>
+
+                                        <option value="documentary">
+                                            Documentary
+                                        </option>
+
+                                        <option value="drama">
+                                            Drama
+                                        </option>
+
+                                        <option value="family">
+                                            Family
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary btn-lg w-100"
+                                >
+                                    Найти фильмы
+                                </button>
+
+                            </form>
+
+                        </div>
+
+
+                        <!-- Поиск по годам -->
+                        <div
+                            class="tab-pane fade"
+                            id="years-search"
+                            role="tabpanel"
+                        >
+
+                            <form>
+
+                                <div class="row">
+
+                                    <div class="col-md-6 mb-3">
+
+                                        <label
+                                            for="year-from"
+                                            class="form-label"
+                                        >
+                                            Год от
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            class="form-control form-control-lg"
+                                            id="year-from"
+                                            name="year_from"
+                                            placeholder="2000"
+                                        >
+
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+
+                                        <label
+                                            for="year-to"
+                                            class="form-label"
+                                        >
+                                            Год до
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            class="form-control form-control-lg"
+                                            id="year-to"
+                                            name="year_to"
+                                            placeholder="2006"
+                                        >
+
+                                    </div>
+
+                                </div>
+
+                                <div class="form-text mb-3">
+                                    Для поиска за один год укажите одинаковые значения.
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary btn-lg w-100"
+                                >
+                                    Найти фильмы
+                                </button>
+
+                            </form>
+
+                        </div>
+
+
+                        <!-- Поиск по жанру и годам -->
+                        <div
+                            class="tab-pane fade"
+                            id="genre-years-search"
+                            role="tabpanel"
+                        >
+
+                            <form>
+
+                                <div class="mb-3">
+
+                                    <label
+                                        for="combined-genre"
+                                        class="form-label"
+                                    >
+                                        Выберите жанр
+                                    </label>
+
+                                    <select
+                                        class="form-select form-select-lg"
+                                        id="combined-genre"
+                                        name="genre"
+                                    >
+
+                                        <option value="" selected>
+                                            Выберите жанр
+                                        </option>
+
+                                        <option value="action">
+                                            Action
+                                        </option>
+
+                                        <option value="animation">
+                                            Animation
+                                        </option>
+
+                                        <option value="comedy">
+                                            Comedy
+                                        </option>
+
+                                        <option value="documentary">
+                                            Documentary
+                                        </option>
+
+                                        <option value="drama">
+                                            Drama
+                                        </option>
+
+                                        <option value="family">
+                                            Family
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+                                <div class="row">
+
+                                    <div class="col-md-6 mb-3">
+
+                                        <label
+                                            for="combined-year-from"
+                                            class="form-label"
+                                        >
+                                            Год от
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            class="form-control form-control-lg"
+                                            id="combined-year-from"
+                                            name="year_from"
+                                            placeholder="2000"
+                                        >
+
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+
+                                        <label
+                                            for="combined-year-to"
+                                            class="form-label"
+                                        >
+                                            Год до
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            class="form-control form-control-lg"
+                                            id="combined-year-to"
+                                            name="year_to"
+                                            placeholder="2006"
+                                        >
+
+                                    </div>
+
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary btn-lg w-100"
+                                >
+                                    Найти фильмы
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Место для популярных запросов -->
+            <div class="card border-0 shadow-sm mt-4">
+
+                <div class="card-header bg-dark text-white">
+                    Популярные запросы
+                </div>
+
+                <div class="card-body">
+
+                    <ol class="list-group list-group-numbered">
+
+                        <li class="list-group-item">
+                            Фильмы жанра Comedy
+                        </li>
+
+                        <li class="list-group-item">
+                            Фильмы за 2006 год
+                        </li>
+
+                        <li class="list-group-item">
+                            Поиск по названию Academy
+                        </li>
+
+                        <li class="list-group-item">
+                            Фильмы жанра Action
+                        </li>
+
+                        <li class="list-group-item">
+                            Фильмы за период 2000–2005
+                        </li>
+
+                    </ol>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+
+<!-- Нижняя часть сайта -->
+<footer class="bg-dark text-white py-4 mt-5">
+
+    <div class="container text-center">
+
+        <p class="mb-1">
+            Sakila Movie Search
+        </p>
+
+        <small class="text-white-50">
+            Учебный проект на Python, Flask, MySQL и MongoDB
+        </small>
+
+    </div>
+
+</footer>
+
+<!-- Конец страницы -->
+
+
+
+
+
+
+        <!-- Конец страницы -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+  </body>
 </html>
