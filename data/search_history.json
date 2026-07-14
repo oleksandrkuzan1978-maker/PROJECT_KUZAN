@@ -256,5 +256,12 @@
         "search_type": "by_name",
         "query": "%as%",
         "created_at": "2026-07-14T21:38:59.041842"
+    },
+    {
+        "search_type": "by_genre_years",
+        "genre_id": "Music",
+        "year_from": 1234,
+        "year_to": 2007,
+        "created_at": "2026-07-14T22:58:30.772101"
     }
 ]

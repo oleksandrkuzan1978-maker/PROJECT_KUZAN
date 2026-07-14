@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any
 
 from tabulate import tabulate
@@ -27,26 +28,32 @@ init(autoreset=True) # Для разноцветного ввода
 
 # ui/console.py
 @funclog
-def check_exit(prompt:str) -> str:
-    """Проверяет, не запросил ли пользователь выход."""
+def input_with_exit(prompt: str) -> str:
+    """
+    Запрашивает ввод пользователя и завершает программу,
+    если введена команда выхода.
+    """
     value = input(prompt).strip().lower()
+
     if value == "q":
-        print(Fore.CYAN + "Выход из программы.")
-        raise SystemExit   # Генерирует исключение. Если это исключение нигде
-                           # Не обработано (try ... except), то выполнение программы полностью прекращается.
+        print(Fore.CYAN + "\nВыход из программы.")
+        raise SystemExit()
+
     return value
+
 
 @funclog
 def input_number(message:str) -> int | str | None:
-    # Проверяет, является ли введенное значение - числом
+    """
+    Запрашивает у пользователя целое число.
+    """
     while True:
-        value = input(message).strip().lower()
+
+        value = input_with_exit(message)
 
         if value.isdigit():
             return int(value)
-        elif value == "q":
-            print(Fore.CYAN + "\nВыход из программы.")
-            raise SystemExit
+
         print(Fore.RED + "Введите число.")
 
 
@@ -59,6 +66,30 @@ def clear_screen() -> None:
 @funclog
 def get_navigation(pages: int) -> tuple[str, None | int] | None:
     # Вариант для input
+    """
+      Запрашивает у пользователя команду навигации по страницам результатов.
+
+      Пользователь может перейти к следующей или предыдущей странице,
+      начать новый поиск, завершить работу программы либо перейти
+      на страницу с указанным номером.
+
+      Args:
+          pages:
+              Общее количество страниц результатов поиска.
+
+      Returns:
+          Кортеж вида (action, value), где:
+
+          - "next", None   — перейти к следующей странице;
+          - "prev", None   — перейти к предыдущей странице;
+          - "search", None — начать новый поиск;
+          - "exit", None   — завершить программу;
+          - "goto", page   — перейти на страницу с номером page.
+
+      Notes:
+          Функция повторяет запрос до тех пор, пока пользователь
+          не введёт корректную команду.
+      """
     while True:
         command = input(
             "\nНажмите [n] - далее, [p] - назад, [f] - новый поиск, "
@@ -90,9 +121,46 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
 
 
 @funclog
-def show_paginated_results(fetch_function
+def show_paginated_results(fetch_function: Callable
                            , fetch_args: tuple[str|int]
                            , info_args:tuple[int, str, Any]) -> str:
+    """
+       Отображает результаты поиска постранично и организует навигацию
+       между страницами.
+
+       Функция запрашивает очередную страницу данных через переданную
+       функцию выборки, выводит результаты в виде таблицы и позволяет
+       пользователю:
+
+       - перейти к следующей странице;
+       - перейти к предыдущей странице;
+       - открыть страницу по её номеру;
+       - начать новый поиск;
+       - завершить работу программы.
+
+       Args:
+           fetch_function:
+               Функция, получающая очередную страницу результатов
+               из базы данных.
+
+           fetch_args:
+               Аргументы, передаваемые функции fetch_function
+               (без параметра offset).
+
+           info_args:
+               Кортеж, содержащий:
+
+               - общее количество найденных фильмов;
+               - заголовок окна результатов;
+               - название жанра (или None).
+
+       Returns:
+           str:
+               Возвращает:
+
+               - "search" — если пользователь решил выполнить новый поиск;
+               - "exit" — если пользователь завершил работу программы.
+       """
 
     total, title, genre = info_args
     pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
@@ -134,7 +202,32 @@ def show_paginated_results(fetch_function
 
 @funclog
 def get_user_input() -> None:
+    """
+       Организует взаимодействие пользователя с консольным интерфейсом
+       приложения.
 
+       Функция отображает главное меню программы, запрашивает критерий
+       поиска фильмов и, в зависимости от выбора пользователя,
+       выполняет следующие действия:
+
+       - поиск фильмов по названию;
+       - поиск фильмов по жанру и диапазону годов выпуска;
+       - вывод списка жанров;
+       - проверку корректности введённых данных;
+       - отображение результатов поиска с постраничной навигацией;
+       - сохранение выполненного запроса в базе данных MongoDB.
+
+       При возникновении ошибок доступа к базе данных выводит сообщение
+       пользователю и записывает информацию об ошибке в журнал логирования.
+
+       Returns:
+           None
+
+       Raises:
+           SystemExit:
+               Если пользователь завершил работу программы
+               командой выхода.
+       """
     logger.info("Запущен модуль пользовательского ввода")
 
     print(Fore.YELLOW + f"\n=== Приложение {db_name.upper()} Film Query ===")
@@ -142,7 +235,7 @@ def get_user_input() -> None:
 
     while True:
 
-        choice = check_exit(Fore.GREEN + "\n\nВыберите критерий поиска:\n" + Style.RESET_ALL + Fore.WHITE +
+        choice = input_with_exit(Fore.GREEN + "\n\nВыберите критерий поиска:\n" + Style.RESET_ALL + Fore.WHITE +
                        "    - по названию, нажмите " + Style.RESET_ALL + Fore.GREEN + "\'1\'\n" + Style.RESET_ALL + Fore.WHITE +
                        "    - по жанру и диапазону\n"
                        "    годов выпуска, нажмите " + Style.RESET_ALL + Fore.GREEN + "\'2\': " + Style.RESET_ALL + Fore.WHITE)
@@ -150,7 +243,7 @@ def get_user_input() -> None:
             if choice == "1":
                 logger.info("Пользователь выбрал поиск по названию фильма")
                 print()
-                name = f"%{check_exit('\nВведите название фильма: ')}%"
+                name = f"%{input_with_exit('\nВведите название фильма: ')}%"
 
                 total = show_total(name, None, None)
                 if total == 0:
