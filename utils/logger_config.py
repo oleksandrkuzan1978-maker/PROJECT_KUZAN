@@ -31,14 +31,17 @@ logger.info("Приложение запущено")
 
 """
 
+
 # utils/logger_config.py
 from colorlog import ColoredFormatter  # Для настройки цвета лог-сообщений в консоли
+from typing import Callable, Any
+from functools import wraps
 import logging
 import os
 import sys
 
 
-def setup_logging():
+def setup_logging() -> None:
     """
     Настраивает систему логирования приложения.
 
@@ -50,13 +53,24 @@ def setup_logging():
         None
     """
 
-    # Оформляем запись Пути к файлу "errors.log" так, чтобы этот путь читался в любой системе
+    # Оформляем запись Пути к лог-файлам так, чтобы эти пути читались в любой системе
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # __file__ пайтон подставляет имя logger_config.py
-    log_file = os.path.join(base_dir, "logs", "errors.log")
+    #log_file = os.path.join(base_dir, "logs", "errors.log")
     ###
+    # Создаю два пути к лог-файлам
+    #log_dir = os.path.join(base_dir, "logs")
+
+    info_log = os.path.join(base_dir, "logs", "info.log")
+    error_log =  os.path.join(base_dir, "logs", "errors.log")
+
     # Создаю обработчик лог-сообщений для записи в лог-файл
-    file_handler = logging.FileHandler(
-        log_file,
+    info_handler = logging.FileHandler(
+        info_log,
+        mode="w",
+        encoding="utf-8"
+    )
+    error_handler = logging.FileHandler(
+        error_log,
         mode="w",  # режим перезаписи содержимого файла errors.log
         encoding="utf-8"
     )
@@ -79,18 +93,61 @@ def setup_logging():
             "CRITICAL": "red"
         }
     )
+    #Назначаю уровни
+    info_handler.setLevel(logging.INFO)
+    error_handler.setLevel(logging.ERROR)
+    console_handler.setLevel(logging.DEBUG)
+
+    # Создаем фильтр для info_handler чтобы в файл info.log попадали только сообщения уровня INFO
+    class InfoFilter(logging.Filter):
+
+        def filter(self, record) -> bool:
+            return record.levelno == logging.INFO
+
+
+    # Добавляем фильтр
+    info_handler.addFilter(InfoFilter())
+
+
     # связываю обработчики с форматерами:
-    # «Когда file_handler записывает сообщение в файл, оформляй его по шаблону file_formatter.»
-    file_handler.setFormatter(file_formatter)
+    # «Когда *_handler записывает сообщение в файл, оформляю его по шаблону file_formatter.»
+    info_handler.setFormatter(file_formatter)
+    error_handler.setFormatter(file_formatter)
     console_handler.setFormatter(console_formatter)
+
     # Создаю неявно логгер
     logging.basicConfig(
         level=logging.DEBUG,
         handlers=[      # Все сообщения логирования отправлять одновременно в файл на экран терминала
-            file_handler#,
-            #console_handler
+            info_handler,
+            error_handler
+            #, console_handler
         ]
     )
+
+
+# Декоратор, который записывает в info.log
+# все вызовы функции с её аргументами и результатом.
+def funclog(func: Callable) -> Callable:
+
+    logger = logging.getLogger(func.__module__)
+
+    @wraps(func)
+    def wrapper(*args: Any) -> Any:
+
+        result = func(*args)
+        msg = f"function {func.__name__}"
+        args_string = ", ".join(str(arg) for arg in args) if args else None
+        #kwargs_string = ", ".join(f'{k}="{v}"' for k,v in kwargs.items()) if kwargs else None
+
+        msg += f" | args: {args_string} | return: {result}" #kwargs: {kwargs_string}
+
+        logger.info(msg)
+
+        return result
+
+    return wrapper
+
 
 # В системе логирования Python есть четыре основных сущности:
 #

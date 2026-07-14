@@ -3,6 +3,7 @@ from typing import Any
 from tabulate import tabulate
 from colorama import Fore, init, Style
 from config.local_settings import dbconfig
+from utils.logger_config import funclog
 from database.mongo_history import save_query
 from database.film_service import (show_total,
                                    show_categories,
@@ -25,7 +26,7 @@ init(autoreset=True) # Для разноцветного ввода
 
 
 # ui/console.py
-
+@funclog
 def check_exit(prompt:str) -> str:
     """Проверяет, не запросил ли пользователь выход."""
     value = input(prompt).strip().lower()
@@ -35,8 +36,8 @@ def check_exit(prompt:str) -> str:
                            # Не обработано (try ... except), то выполнение программы полностью прекращается.
     return value
 
-
-def input_number(message:str) -> int | str:
+@funclog
+def input_number(message:str) -> int | str | None:
     # Проверяет, является ли введенное значение - числом
     while True:
         value = input(message).strip().lower()
@@ -55,7 +56,7 @@ def clear_screen() -> None:
     command = 'cls' if platform.system().lower() == 'windows' else 'clear'
     os.system(command)
 
-
+@funclog
 def get_navigation(pages: int) -> tuple[str, None | int] | None:
     # Вариант для input
     while True:
@@ -87,84 +88,8 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
 
         print(Fore.RED + "\n\tВвод некорректного значения.")
 
-    # """
-    # Возвращает действие пользователя.
-    #
-    # Возможные значения:
-    #     ("next", None)
-    #     ("prev", None)
-    #     ("search", None)
-    #     ("exit", None)
-    #     ("goto", page_number)
-    # """
-    #
-    # while True:
-    #     # Ждем первое событие клавиатуры
-    #     event = keyboard.read_event()
-    #
-    #     if event.event_type != keyboard.KEY_DOWN:
-    #         continue
-    #
-    #     key = event.name  # Проверяем, что клавишу именно НАЖАЛИ, а не отпустили
-    #
-    #     # ---------- Ввод номера страницы ----------
-    #     # 1. Если это цифра — собираем число
-    #     if key.isdigit():
-    #
-    #         user_input = key
-    #         print(key, end="", flush=True) # Печатаем первую цифру без дублей
-    #
-    #         while True:
-    #
-    #             next_event = keyboard.read_event()
-    #
-    #             if next_event.event_type != keyboard.KEY_DOWN:
-    #                 continue
-    #
-    #             next_key = next_event.name # Ловим только нажатия клавиш
-    #
-    #             if next_key.isdigit():
-    #
-    #                 user_input += next_key
-    #                 print(next_key, end="", flush=True)
-    #
-    #             elif next_key == "enter":
-    #
-    #                 print()
-    #                 break
-    #
-    #         target_page = int(user_input) # Присваиваем собранное число
-    #
-    #         if 1 <= target_page <= pages:
-    #             return "goto", target_page
-    #
-    #         print(Fore.RED + f"\nСтраница {target_page} отсутствует.")
-    #         print(f"Введите правильный номер страницы: ", end="")
-    #         continue
-    #
-    #
-    #     # ---------- Стрелки ----------
-    #
-    #     elif key == "right":
-    #         return "next", None
-    #
-    #     elif key == "left":
-    #         return "prev", None
-    #
-    #     # ---------- Новый поиск ----------
-    #
-    #     elif key == "f":
-    #
-    #         return "search", None
-    #
-    #     # ---------- Выход ----------
-    #
-    #     elif key == "q":
-    #
-    #         return "exit", None
 
-
-
+@funclog
 def show_paginated_results(fetch_function
                            , fetch_args: tuple[str|int]
                            , info_args:tuple[int, str, Any]) -> str:
@@ -185,8 +110,6 @@ def show_paginated_results(fetch_function
             print(Fore.CYAN + "Жанр:"+ Style.RESET_ALL + Fore.WHITE, genre)
         print(f"Найдено: {total} фильма(ов)")
         print(f"Страница {page} из {pages}")
-        # print("\nНажмите [→] - далее, [←] - назад, [f] - новый поиск, [q] - выход")
-        # print("Или введите номер страницы и нажмите [Enter]: ", end="")
 
         action, value = get_navigation(pages)
 
@@ -203,13 +126,13 @@ def show_paginated_results(fetch_function
             break
 
         elif action == "exit":
-            print(Fore.CYAN + "\nСпасибо за использование программы!")
+            print(Fore.CYAN + "\nСпасибо за использование программы!\n")
             return "exit"
 
 
     return "search"
 
-
+@funclog
 def get_user_input() -> None:
 
     logger.info("Запущен модуль пользовательского ввода")
@@ -258,7 +181,6 @@ def get_user_input() -> None:
                     num_genre = input_number(Fore.GREEN + "Введите номер жанра: " + Style.RESET_ALL + Fore.WHITE)
                     if 1 <= num_genre <= number_genres:
                         # ccc = rows
-
                         break
                     else:
                         print("\n\tВыбранный вами жанр отсутствует в списке\n")

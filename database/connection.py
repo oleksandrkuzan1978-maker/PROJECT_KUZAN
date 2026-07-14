@@ -24,10 +24,12 @@ from config.local_settings import dbconfig # импорт словаря с на
 #from config.local_settings import dbconfig_write
 from mysql.connector.connection import MySQLConnectionAbstract
 import logging
+from utils.logger_config import funclog
+
 
 logger = logging.getLogger(__name__)
 
-
+@funclog
 def get_connection() ->MySQLConnectionAbstract:
     logger.debug("Параметры подключения загружены")
     try: # В этом модуле стоит ловить ошибки подключения

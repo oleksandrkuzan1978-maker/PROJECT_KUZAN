@@ -24,6 +24,7 @@
 # services/film_service.py
 import mysql.connector
 from database.connection import get_connection
+from utils.logger_config import funclog
 from database.executor import execute_query
 from database.queries import (
     NAME_TOTAL,
@@ -42,6 +43,7 @@ logger = logging.getLogger(__name__)  # Создаю логгер с имене�
 
 
 # Ф-ция возвращает общее кол-во совпадений по запросу
+@funclog
 def show_total(name_or_genre: str | int, year_from=None, year_to=None) -> int:
     connection = get_connection()
     try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
@@ -63,7 +65,7 @@ def show_total(name_or_genre: str | int, year_from=None, year_to=None) -> int:
         connection.close()
         logger.info("Соединение для запросов 1_1, 2_1 закрыто")
 
-
+@funclog
 def show_films_by_name(
         name: str,
         offset: int) -> tuple[list[tuple[Any, ...]], list[str]]:
@@ -83,7 +85,7 @@ def show_films_by_name(
         connection.close()
         logger.info("Соединение для запроса №1_2 закрыто")
 
-
+@funclog
 def show_films_by_genre(
         num_genre: int,
         year_from: int,
@@ -108,7 +110,7 @@ def show_films_by_genre(
         connection.close()
         logger.info("Соединение для запроса №1_2 и №2_2 закрыто")
 
-
+@funclog
 def show_categories()-> tuple[list[tuple[Any, ...]], list[str]]:
     connection = get_connection()
     try:

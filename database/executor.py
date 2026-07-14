@@ -28,10 +28,11 @@ from typing import Any
 from mysql.connector.cursor import MySQLCursorAbstract
 import mysql.connector
 import logging
+from utils.logger_config import funclog
 
 logger = logging.getLogger(__name__)  # Создаю логгер с именем "executor".
                                       # Метод getLogger возвращает объект логгера с именем этого модуля.
-
+@funclog
 def execute_query(cursor:MySQLCursorAbstract, query: str, *params:Any,) -> tuple[list[tuple[Any, ...]], list[str]]:
 
     try:  #В этом модуле стоит ловить ошибки выполнения SQL
