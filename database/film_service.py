@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)  # Создаю логгер с имене�
 
 # Ф-ция возвращает общее кол-во совпадений по запросу
 @funclog
-def show_total(name_or_genre: str | int, year_from=None, year_to=None) -> int:
+def show_total(name_or_genre: str | int, year_from:None | int =None, year_to: None | int =None) -> int:
     connection = get_connection()
     try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
         cursor = connection.cursor()

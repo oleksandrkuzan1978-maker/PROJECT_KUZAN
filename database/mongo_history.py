@@ -2,16 +2,16 @@ from pprint import pprint
 from datetime import datetime
 from collections import Counter
 from pathlib import Path
-#from pymongo import MongoClient  # pip install pymongo
-#from pymongo.errors import PyMongoError
-#from config.local_settings import MONGODB_URL_WRITE
+from pymongo import MongoClient  # pip install pymongo
+from pymongo.errors import PyMongoError
+from config.local_settings import MONGODB_URL_WRITE
 import logging
 import json
 
 
 logger = logging.getLogger(__name__)
 
-DB_NAME = "ich"
+DB_NAME = "ich_edit"
 COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
 
 HISTORY_FILE = Path("data\search_history.json")
@@ -62,6 +62,7 @@ def save_query(name_genre, year_from=None, year_to=None):
         logger.info("Поисковый запрос сохранён в JSON-файл")
     except OSError:
         logger.exception("Ошибка записи поискового запроса в JSON-файл")
+        raise
 
 
 # вернуть 5 самых популярных запросов.

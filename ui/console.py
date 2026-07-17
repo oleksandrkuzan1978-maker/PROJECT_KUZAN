@@ -5,7 +5,7 @@ from tabulate import tabulate
 from colorama import Fore, init, Style
 from config.local_settings import dbconfig
 from utils.logger_config import funclog
-from database.mongo_history import save_query
+from database.mongo_history_write import save_query
 from database.film_service import (show_total,
                                    show_categories,
                                    show_films_by_name,
@@ -255,8 +255,8 @@ def get_user_input() -> None:
                 fetch_function = show_films_by_name
                 fetch_args = (name,)
                 info_args = (total, title, None)
-                save_query(name, None, None) # Запись запроса в коллекцию MongoDB
-
+                #save_query(name, None, None) # Запись запроса в коллекцию MongoDB
+                save_query("by_name", name=name)  # Запись запроса в коллекцию MongoDB
             elif choice == "2":
                 logger.info("Пользователь выбрал поиск по жанру и диапазону лет выпуска")
                 print()
@@ -273,7 +273,7 @@ def get_user_input() -> None:
                 while True:
                     num_genre = input_number(Fore.GREEN + "Введите номер жанра: " + Style.RESET_ALL + Fore.WHITE)
                     if 1 <= num_genre <= number_genres:
-                        # ccc = rows
+
                         break
                     else:
                         print("\n\tВыбранный вами жанр отсутствует в списке\n")
@@ -302,7 +302,7 @@ def get_user_input() -> None:
                  # Название выбранного жанра
 
 
-                save_query(genre, year_from, year_to) # Запись запроса в коллекцию MongoDB
+                save_query("by_genre_years", genre=genre, year_from=year_from, year_to=year_to) # Запись запроса в коллекцию MongoDB
 
 
             elif choice == "q":
