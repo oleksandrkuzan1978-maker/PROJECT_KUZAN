@@ -26,13 +26,6 @@ import mysql.connector
 from database.connection import get_connection
 from utils.logger_config import funclog
 from database.executor import execute_query
-from database.queries import (
-    NAME_TOTAL,
-    GENRES_TOTAL,
-    GET_BY_NAME,
-    GET_BY_GENRES_AND_YEARS,
-    GET_GENRES
-)
 from typing import Any
 import logging
 
@@ -44,83 +37,36 @@ logger = logging.getLogger(__name__)  # Создаю логгер с имене�
 
 # Ф-ция возвращает общее кол-во совпадений по запросу
 @funclog
-def show_total(name_or_genre: str | int, year_from:None | int =None, year_to: None | int =None) -> int:
+def show_total(query: str, *params: None | int | str) -> int:
     connection = get_connection()
     try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
         cursor = connection.cursor()
-        if year_from is None:
-            rows, _ = execute_query(cursor,  # Общее кол-во совпадений по запросу
-                                    NAME_TOTAL,
-                                    name_or_genre)
-        else:
-            rows, _ = execute_query(cursor,  # Общее кол-во совпадений по запросу
-                                    GENRES_TOTAL,
-                                    name_or_genre, year_from, year_to)
+
+        rows, _ = execute_query(cursor, query, *params)
+
         return rows[0][0]
 
     except mysql.connector.Error:
-        logger.exception("Ошибка подключения при запросе №1_1 или 2_1")
+        logger.exception("Ошибка подключения при SQL-запросе")
         raise
     finally:
         connection.close()
-        logger.info("Соединение для запросов 1_1, 2_1 закрыто")
+        logger.info("Соединение для SQL-запросов закрыто")
 
 @funclog
-def show_films_by_name(
-        name: str,
-        offset: int) -> tuple[list[tuple[Any, ...]], list[str]]:
-    connection = get_connection()
-    try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
-        cursor = connection.cursor()
-        return execute_query(
-            cursor,
-            GET_BY_NAME,
-            name,
-            offset)
-
-    except mysql.connector.Error:
-        logger.exception("Ошибка подключения при запросе №1_2")
-        raise
-    finally:
-        connection.close()
-        logger.info("Соединение для запроса №1_2 закрыто")
-
-@funclog
-def show_films_by_genre(
-        num_genre: int,
-        year_from: int,
-        year_to: int,
-        offset: int) -> tuple[list[tuple[Any, ...]], list[str]]:
-    connection = get_connection()
-    try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
-        cursor = connection.cursor()
-
-        return execute_query(
-            cursor,
-            GET_BY_GENRES_AND_YEARS,
-            num_genre,
-            year_from,
-            year_to,
-            offset)
-
-    except mysql.connector.Error:
-        logger.exception("Ошибка подключения при запросе №1_2 или №2_2")
-        raise
-    finally:
-        connection.close()
-        logger.info("Соединение для запроса №1_2 и №2_2 закрыто")
-
-@funclog
-def show_categories()-> tuple[list[tuple[Any, ...]], list[str]]:
+def show_films_by(query: str, *params:tuple[list[tuple[Any, ...]], list[str]] | None) -> tuple[list[tuple[Any, ...]], list[str]]:
     connection = get_connection()
     try:
         cursor = connection.cursor()
         return execute_query(
             cursor,
-            GET_GENRES)
+            query,
+            *params
+        )
     except mysql.connector.Error:
-        logger.exception("Ошибка подключения при запросе №3")
+        logger.exception("Ошибка подключения при SQL-запросе")
         raise
     finally:
         connection.close()
-        logger.info("Соединение для запроса №3 закрыто")
+        logger.info("Соединение для SQL-запроса закрыто")
+

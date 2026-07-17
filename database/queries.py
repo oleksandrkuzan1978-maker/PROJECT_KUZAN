@@ -24,13 +24,13 @@
 # import logging
 # logger = logging.getLogger(__name__)
 
-# ЗАПРОС #1_1 из БД по общему количеству совпадений по имени
+# ЗАПРОС из БД по общему количеству совпадений по имени
 NAME_TOTAL = """
               SELECT COUNT(*)
               FROM film
               WHERE title LIKE %s """
 
-# ЗАПРОС №1_2 из БД по наименованию
+# ЗАПРОС из БД по наименованию
 GET_BY_NAME = """
               SELECT title, description, release_year
               FROM film
@@ -38,7 +38,7 @@ GET_BY_NAME = """
               OFFSET %s """
 
 
-# ЗАПРОС №2_1 из БД по общему кол-ву совпадений по жанрам и годам
+# ЗАПРОС из БД по общему кол-ву совпадений по жанрам и годам
 GENRES_TOTAL = """
                           SELECT COUNT(*)
                           FROM film AS f
@@ -46,7 +46,7 @@ GENRES_TOTAL = """
                           WHERE category_id = %s
                             AND release_year BETWEEN %s AND %s """
 
-# ЗАПРОС №2_2 из БД по жанрам и годам
+# ЗАПРОС из БД по жанрам и годам
 GET_BY_GENRES_AND_YEARS = """
                           SELECT title, description, release_year, category_id
                           FROM film AS f
@@ -56,7 +56,7 @@ GET_BY_GENRES_AND_YEARS = """
                               LIMIT 10
                               OFFSET %s """
 
-# ЗАПРОС №3 жанров из БД 'sakila'
+# ЗАПРОС жанров из БД 'sakila'
 GET_GENRES = """
               SELECT category_id as "number", name as "name of genre"
               FROM category """

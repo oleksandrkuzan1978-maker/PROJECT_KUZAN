@@ -19,7 +19,7 @@ COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
 
 def save_query(search_type, **kwargs):
     document = {
-        "search_type":search_type,
+        "search_type": search_type,
         **kwargs,
         "created_at": datetime.now(),
 

@@ -1,4 +1,5 @@
 from collections.abc import Callable
+
 from typing import Any
 
 from tabulate import tabulate
@@ -7,9 +8,15 @@ from config.local_settings import dbconfig
 from utils.logger_config import funclog
 from database.mongo_history_write import save_query
 from database.film_service import (show_total,
-                                   show_categories,
-                                   show_films_by_name,
-                                   show_films_by_genre)
+                                   show_films_by
+                                   )
+from database.queries import (
+    NAME_TOTAL,
+    GENRES_TOTAL,
+    GET_BY_NAME,
+    GET_BY_GENRES_AND_YEARS,
+    GET_GENRES
+)
 import mysql.connector
 import logging
 #import keyboard
@@ -245,26 +252,27 @@ def get_user_input() -> None:
                 print()
                 name = f"%{input_with_exit('\nВведите название фильма: ')}%"
 
-                total = show_total(name, None, None)
+                total = show_total(NAME_TOTAL, name)#show_total(name, None, None)
                 if total == 0:
                     print("По данному запросу фильмы не найдены.")
                     continue
 
                 title = f"\n========= Вывод фильмов из БД '{db_name}' по названию =========="
 
-                fetch_function = show_films_by_name
-                fetch_args = (name,)
+                fetch_function = show_films_by
+                fetch_args = (GET_BY_NAME, name,)
                 info_args = (total, title, None)
-                #save_query(name, None, None) # Запись запроса в коллекцию MongoDB
+
                 save_query("by_name", name=name)  # Запись запроса в коллекцию MongoDB
+
             elif choice == "2":
                 logger.info("Пользователь выбрал поиск по жанру и диапазону лет выпуска")
                 print()
 
                 # Вывод на экран терминала списка жанров
-                rows, headers = show_categories()
+                rows, headers = show_films_by(GET_GENRES)
                 number_genres = len(rows)
-                print(number_genres)
+
 
                 print(Fore.YELLOW + f"\n======== Список жанров =======")
                 print(tabulate(rows, headers=headers, tablefmt="psql"))
@@ -288,7 +296,11 @@ def get_user_input() -> None:
                         print(Fore.RED + "\n\tНекорректный ввод года")
                         continue
 
-                total = show_total(num_genre, year_from, year_to)
+                total = show_total(GENRES_TOTAL,
+                                    num_genre,
+                                    year_from,
+                                    year_to)
+
                 if total == 0:
                     print("По данному запросу фильмы не найдены.")
                     continue
@@ -296,8 +308,8 @@ def get_user_input() -> None:
                 title = f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' ========="
                 genre = rows[num_genre-1][1]
 
-                fetch_function = show_films_by_genre
-                fetch_args = (num_genre, year_from, year_to)
+                fetch_function = show_films_by
+                fetch_args = (GET_BY_GENRES_AND_YEARS, num_genre, year_from, year_to)
                 info_args = (total, title, genre)
                  # Название выбранного жанра
 
