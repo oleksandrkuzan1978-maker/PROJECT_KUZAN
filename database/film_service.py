@@ -29,10 +29,9 @@ from database.executor import execute_query
 from typing import Any
 import logging
 
-
-
 # Метод getLogger возвращает объект логгера с именем этого модуля.
 logger = logging.getLogger(__name__)  # Создаю логгер с именем "file_service".
+
 
 # Ф-ция возвращает общее кол-во совпадений по запросу
 @funclog
@@ -52,8 +51,10 @@ def show_total(query: str, *params: None | int | str) -> int:
         connection.close()
         logger.info("Соединение для SQL-запросов закрыто")
 
+
 @funclog
-def show_films_by(query: str, *params:tuple[list[tuple[Any, ...]], list[str]] | None) -> tuple[list[tuple[Any, ...]], list[str]]:
+def show_films_by(query: str, *params: tuple[list[tuple[Any, ...]], list[str]] | None) -> tuple[
+    list[tuple[Any, ...]], list[str]]:
     connection = get_connection()
     try:
         cursor = connection.cursor()
@@ -68,4 +69,3 @@ def show_films_by(query: str, *params:tuple[list[tuple[Any, ...]], list[str]] | 
     finally:
         connection.close()
         logger.info("Соединение для SQL-запроса закрыто")
-

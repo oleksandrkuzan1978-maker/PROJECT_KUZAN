@@ -1,5 +1,4 @@
 from collections.abc import Callable
-
 from typing import Any
 from tabulate import tabulate
 from colorama import Fore, init, Style
@@ -20,6 +19,7 @@ import mysql.connector
 import logging
 import os
 import platform
+
 
 logger = logging.getLogger(__name__)
 
@@ -96,10 +96,11 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
           не введёт корректную команду.
       """
     while True:
-        command = input(
-            "\nНажмите [n] - далее, [p] - назад, [f] - новый поиск, "
-            "[q] - выход или введите номер страницы: "
-        ).strip().lower()
+        print("\nНажмите " + Fore.YELLOW + "[n]" + Style.RESET_ALL + Fore.WHITE + "- далее " + Fore.YELLOW + "[p]"
+              + Style.RESET_ALL + Fore.WHITE + "- назад, " + Fore.YELLOW + "[f]" + Style.RESET_ALL + Fore.WHITE +
+              "- новый поиск, " + Fore.YELLOW + "[q]" + Style.RESET_ALL + Fore.WHITE + "- выход или введите"
+              + Fore.YELLOW + " номер страницы: " + Style.RESET_ALL + Fore.WHITE, end="")
+        command = input().strip().lower()
 
         if command == "n":
             return "next", None
@@ -235,17 +236,24 @@ def get_user_input() -> None:
        """
     logger.info("Запущен модуль пользовательского ввода")
 
-    print(Fore.YELLOW + f"\n=== Приложение {db_name.upper()} Film Query ===")
-    print(Fore.YELLOW + "___ Поиск фильмов на любой вкус ___")
+    print(Fore.YELLOW + f"\n=== Application {db_name.upper()} Film Query ===")
+    print(Fore.YELLOW + "___ Find movies for every taste ___")
 
     while True:
-
-        choice = input_with_exit(Fore.GREEN + "\n\nВыберите критерий поиска:\n" + Style.RESET_ALL + Fore.WHITE +
-                       "    - по названию, нажмите " + Style.RESET_ALL + Fore.GREEN + "\'1\'\n" + Style.RESET_ALL + Fore.WHITE +
-                       "    - по жанру и диапазону\n"
-                       "    годов выпуска, нажмите " + Style.RESET_ALL + Fore.GREEN + "\'2\': " + Style.RESET_ALL + Fore.WHITE)
+        print(Fore.GREEN + "\n==== MOVIE SEARCH DASHBOARD ====")
+        print("""1 - 🔍  Search by keyword
+2 - 🎭  Search by genre and years
+3 - ⭐  Show popular searches
+4 - 🕒  Show recent searches
+q - 🚪   Exit """)
+        choice = input_with_exit(Fore.GREEN + "\tMake a choice: " + Style.RESET_ALL + Fore.WHITE)
+        # choice = input_with_exit(Fore.GREEN + "\n\nВыберите критерий поиска:\n" + Style.RESET_ALL + Fore.WHITE +
+        #                "    - по названию, нажмите  " + Style.RESET_ALL + Fore.GREEN + "\'1\'\n" + Style.RESET_ALL + Fore.WHITE +
+        #                "    - по жанру и диапазону\n"
+        #                "    годов выпуска, нажмите " + Style.RESET_ALL + Fore.GREEN + "\'2\': " + Style.RESET_ALL + Fore.WHITE)
         try:
             if choice == "1":
+
                 logger.info("Пользователь выбрал поиск по названию фильма")
                 print()
                 name = f"%{input_with_exit('\nВведите название фильма: ')}%"
@@ -261,10 +269,14 @@ def get_user_input() -> None:
                 fetch_args = (GET_BY_NAME, name,)
                 info_args = (total, title, None)
 
+
                 save_query("by_name", query=name)  # Запись запроса в коллекцию MongoDB
+                result = show_paginated_results(fetch_function, fetch_args, info_args)
+                if result == "exit":
+                    return  # exit()
 
             elif choice == "2":
-                output_last_queries()
+
                 logger.info("Пользователь выбрал поиск по жанру и диапазону лет выпуска")
                 print()
 
@@ -316,17 +328,28 @@ def get_user_input() -> None:
                 # save_query("by_genre_years", genre=genre, year_from=year_from, year_to=year_to) # Запись запроса в коллекцию MongoDB
                 save_query("by_genre_years", query=f"Genre: {genre}, years: {year_from}-{year_to}")
 
+                result = show_paginated_results(fetch_function, fetch_args, info_args)
+
+                if result == "exit":
+                    return #exit()
+
+            elif choice == "3":
+                output_number_top()
+
+            elif choice == "4":
+                output_last_queries()
+
             elif choice == "q":
                 print(Fore.CYAN + "\nСпасибо за использование программы!\n")
                 return
             else:
                 print(Fore.RED + "\nВы ввели некорректный символ для выбора.\n")
                 continue # Возвращаем в начало цикла, если выбор неверный
-
-            result = show_paginated_results(fetch_function, fetch_args, info_args)
-
-            if result == "exit":
-                return #exit()
+            # if choice in ("1", "2"):
+            #     result = show_paginated_results(fetch_function, fetch_args, info_args)
+            #
+            #     if result == "exit":
+            #         return #exit()
 
         except mysql.connector.Error:
             print(Fore.RED + "Ошибка при обращении к базе данных. Попробуйте позже.")
@@ -335,7 +358,7 @@ def get_user_input() -> None:
 
 
 # Выводим 5 самых часто посылаемых запросов и информацию об их количестве
-def output_number_top():
+def output_number_top() -> None:
 
     queries = get_top_queries()
 
@@ -345,12 +368,11 @@ def output_number_top():
             print(f"{i}. Search keyword: {q["_id"]["query"]}")
         else:
             print(f"{i}. {q["_id"]["query"]}")
-        print(f"   Request date: {q["_id"]["created_at"].strftime("%Y-%m-%d %H:%M:%S")}\n"
-              f"   Number of requests: {q["count"]}\n")
+        print(f"   Number of requests: {q["count"]}")
 
 
 # Выводим 5 самых последних запросов
-def output_last_queries():
+def output_last_queries() -> None:
     queries = get_last_queries()
     #print(queries)
     for i, q in enumerate(queries, start=1):
@@ -361,18 +383,8 @@ def output_last_queries():
             print(f"{i}. {q["query"]}")
         print(f"   Request date: {q["created_at"].strftime("%Y-%m-%d %H:%M:%S")}\n")
 
-print("""
-🎬 MOVIE SEARCH DASHBOARD 🎬
-
-1 - 🔍 Search by keyword
-2 - 🎭 Search by genre and years
-3 - ⭐ Show popular searches
-4 - 🕒 Show recent searches
-0 - 🚪 Exit
-""")
 
 
-        #"Для вывода пяти наиболее популярных запросов нажмите \'p\'\n"
 
 
 

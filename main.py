@@ -24,7 +24,6 @@ from config.local_settings import dbconfig
 
 import logging
 
-
 setup_logging()
 
 logger = logging.getLogger(__name__) # Создаю логгер с именем "main".
@@ -38,6 +37,7 @@ def main():
 
         logger.info("=== Все запросы выполнены успешно ===")
         logger.info("Завершение приложения")
+
     except mysql.connector.Error:
         print("Не удалось подключиться к БД")
         exit(1)
