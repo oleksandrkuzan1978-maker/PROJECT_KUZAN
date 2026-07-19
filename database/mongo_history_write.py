@@ -5,7 +5,7 @@ from datetime import datetime
 from pymongo import MongoClient  # pip install pymongo
 from pymongo.errors import PyMongoError
 
-from config.local_settings import MONGODB_URL_WRITE
+from config.local_settings import (MONGODB_URL_WRITE, MONGODB_URL_READ)
 import logging
 
 
@@ -17,15 +17,15 @@ DB_NAME = "ich_edit"
 COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
 
 
-def save_query(search_type, **kwargs):
+def save_query(search_type, query):
     document = {
         "search_type": search_type,
-        **kwargs,
+        "query": query,
         "created_at": datetime.now(),
 
     }
-    if "name" in document:
-        document["name"] = document["name"].replace("%", "") # Заменяем в названии фильма % на ""
+    if search_type == "by_name":
+        document["query"] = document["query"].replace("%", "") # Заменяем в названии фильма % на ""
 
     try:
         with MongoClient(MONGODB_URL_WRITE) as client:
@@ -52,13 +52,34 @@ def save_query(search_type, **kwargs):
 
 
 # вернуть 5 самых популярных запросов.
-def get_top_queries():
-    pass
+def get_top_queries(limit: int = 5):
+
+    try:
+        with MongoClient(MONGODB_URL_WRITE) as client:
+            collection = client[DB_NAME][COLLECTION_NAME]
+            return list(
+                collection.aggregate([
+                    {"$group": {"_id": {"search_type": "$search_type",
+                                        "query": "$query", "created_at": "$created_at"},
+                                "count": {"$sum": 1}}},
+                    {"$sort": {"count": -1}},
+                    {"$limit": limit}]))
+    except PyMongoError:
+        logger.exception("Ошибка чтения MongoDB")
+        raise
 
 
 # вернуть последние 5 запросов.
-def get_last_queries():
-    pass
+def get_last_queries(limit: int =5):
+
+    try:
+        with MongoClient(MONGODB_URL_READ) as client:
+            collection = client[DB_NAME][COLLECTION_NAME]
+            return list(collection.find({},
+                    {"_id": 0}).sort("created_at", -1).limit(limit))
+    except PyMongoError:
+        logger.exception("Ошибка чтения MongoDB")
+        raise
 
 
 # """ ********************** Блок задач **************************** """
