@@ -17,14 +17,12 @@
 """
 
 # main.py
+from utils.logger_config import setup_logging
+setup_logging()
 from ui.console import get_user_input
 import mysql.connector
-from utils.logger_config import setup_logging
 from config.local_settings import dbconfig
-
 import logging
-
-setup_logging()
 
 logger = logging.getLogger(__name__) # Создаю логгер с именем "main".
                                      # Метод getLogger возвращает объект логгера с именем этого модуля
@@ -39,11 +37,15 @@ def main():
         logger.info("Завершение приложения")
 
     except mysql.connector.Error:
-        print("Не удалось подключиться к БД")
+        logger.error("Приложение завершено из-за ошибки работы с БД")
+        print("Ошибка при работе с базой данных.")
         exit(1)
     except Exception:
-        logger.exception("Критическая ошибка в main()")
-        print("Произошла ошибка выполнения программы. Проверьте логи.")
+        logger.critical(
+            "Необработанное исключение достигло main().",
+            exc_info=True
+        )
+        print("Произошла критическая ошибка.")
         exit(1)
 
 if __name__ == "__main__":

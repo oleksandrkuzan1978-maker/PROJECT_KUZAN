@@ -6,13 +6,13 @@ from typing import Any
 # from pathlib import Path
 from pymongo import MongoClient  # pip install pymongo
 from pymongo.errors import PyMongoError
-
+from functools import wraps
 from config.local_settings import (MONGODB_URL_WRITE, MONGODB_URL_READ)
 import logging
 
 logger = logging.getLogger(__name__)
 
-"""******************* Создаем коллекцию **********************"""
+"""*********************** Создаем коллекцию ***************************"""
 
 DB_NAME = "ich_edit"
 COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
@@ -31,10 +31,6 @@ def save_query(search_type, query):
     try:
         with MongoClient(MONGODB_URL_WRITE) as client:
 
-            # TIMES = 5  # число документов на печать по умолчанию
-            # task_statement = []  # список условий задач
-            # data = []  # список документов по каждому решению задачи
-
             collection = client[DB_NAME][COLLECTION_NAME]
             collection.insert_one(document)
 
@@ -45,39 +41,71 @@ def save_query(search_type, query):
         logger.info("Поисковый запрос сохранён в MongoDB")
         print(f"Поисковый запрос {COLLECTION_NAME} сохранён в MongoDB")
 
-
     except PyMongoError:
         logger.exception("Ошибка записи поискового запроса в MongoDB")
         raise
 
+"""************************ Возвращаем запросы ***************************"""
+
+# Декоратор подключения к МонгоДБ и исключения ошибок
+def mongo_reader(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            with MongoClient(MONGODB_URL_READ) as client:
+                collection = client[DB_NAME][COLLECTION_NAME]
+                return func(collection, *args, **kwargs)
+        except PyMongoError:
+            logger.exception("Ошибка чтения MongoDB")
+            raise
+    return wrapper
 
 # вернуть 5 самых популярных запросов.
-def get_top_queries(limit: int = 5):
-    try:
-        with MongoClient(MONGODB_URL_READ) as client:
-            collection = client[DB_NAME][COLLECTION_NAME]
-            return list(
-                collection.aggregate([
-                    {"$group": {"_id": {"search_type": "$search_type",
-                                        "query": "$query"},
-                                "count": {"$sum": 1}}},
-                    {"$sort": {"count": -1}},
-                    {"$limit": limit}]))
-    except PyMongoError:
-        logger.exception("Ошибка чтения MongoDB")
-        raise
+@mongo_reader
+def get_top_queries(collection, limit: int = 5):
+    return list(
+        collection.aggregate([
+            {"$group": {"_id": {"search_type": "$search_type",
+                                "query": "$query"},
+                        "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": limit}]))
 
 
 # вернуть последние 5 запросов.
-def get_last_queries(limit: int = 5):
-    try:
-        with MongoClient(MONGODB_URL_READ) as client:
-            collection = client[DB_NAME][COLLECTION_NAME]
-            return list(collection.find({},
-                                        {"_id": 0}).sort("created_at", -1).limit(limit))
-    except PyMongoError:
-        logger.exception("Ошибка чтения MongoDB")
-        raise
+@mongo_reader
+def get_last_queries(collection, limit: int = 5):
+    return list(collection.find({},
+                                {"_id": 0}).sort("created_at", -1).limit(limit))
+
+
+# # вернуть 5 самых популярных запросов.
+# def get_top_queries(limit: int = 5):
+#     try:
+#         with MongoClient(MONGODB_URL_READ) as client:
+#             collection = client[DB_NAME][COLLECTION_NAME]
+#             return list(
+#                 collection.aggregate([
+#                     {"$group": {"_id": {"search_type": "$search_type",
+#                                         "query": "$query"},
+#                                 "count": {"$sum": 1}}},
+#                     {"$sort": {"count": -1}},
+#                     {"$limit": limit}]))
+#     except PyMongoError:
+#         logger.exception("Ошибка чтения MongoDB")
+#         raise
+
+
+# # вернуть последние 5 запросов.
+# def get_last_queries(limit: int = 5):
+#     try:
+#         with MongoClient(MONGODB_URL_READ) as client:
+#             collection = client[DB_NAME][COLLECTION_NAME]
+#             return list(collection.find({},
+#                                         {"_id": 0}).sort("created_at", -1).limit(limit))
+#     except PyMongoError:
+#         logger.exception("Ошибка чтения MongoDB")
+#         raise
 
 # """ ********************** Блок задач **************************** """
 

@@ -104,10 +104,8 @@ def setup_logging() -> None:
         def filter(self, record) -> bool:
             return record.levelno == logging.INFO
 
-
     # Добавляем фильтр
     info_handler.addFilter(InfoFilter())
-
 
     # связываю обработчики с форматерами:
     # «Когда *_handler записывает сообщение в файл, оформляю его по шаблону file_formatter.»
@@ -118,7 +116,7 @@ def setup_logging() -> None:
     # Создаю неявно логгер
     logging.basicConfig(
         level=logging.DEBUG,
-        handlers=[      # Все сообщения логирования отправлять одновременно в файл на экран терминала
+        handlers=[ # Все сообщения логирования отправлять одновременно в файл и на экран терминала
             info_handler,
             error_handler
             #, console_handler

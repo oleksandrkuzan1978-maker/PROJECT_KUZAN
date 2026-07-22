@@ -5,9 +5,7 @@ from colorama import Fore, init, Style
 from config.local_settings import dbconfig
 from utils.logger_config import funclog
 from database.mongo_history_write import (save_query, get_top_queries, get_last_queries)
-from database.film_service import (show_total,
-                                   show_films_by
-                                   )
+from database.film_service import get_by
 from database.queries import (
     NAME_TOTAL,
     GENRES_TOTAL,
@@ -129,7 +127,7 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
 @funclog
 def show_paginated_results(fetch_function: Callable
                            , fetch_args: tuple[str|int]
-                           , info_args:tuple[int, str, Any]) -> str:
+                           , info_args: tuple[int, str, Any]) -> str:
     """
        Отображает результаты поиска постранично и организует навигацию
        между страницами.
@@ -167,7 +165,6 @@ def show_paginated_results(fetch_function: Callable
                - "search" — если пользователь решил выполнить новый поиск;
                - "exit" — если пользователь завершил работу программы.
        """
-
     total, title, genre = info_args
     pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
     page = 1
@@ -202,9 +199,8 @@ def show_paginated_results(fetch_function: Callable
         elif action == "exit":
             print(Fore.CYAN + "\nСпасибо за использование программы!\n")
             return "exit"
-
-
     return "search"
+
 
 @funclog
 def get_user_input() -> None:
@@ -247,6 +243,7 @@ def get_user_input() -> None:
 4 - 🕒  Show recent searches
 q - 🚪   Exit """)
         choice = input_with_exit(Fore.GREEN + "\tMake a choice: " + Style.RESET_ALL + Fore.WHITE)
+        print()
         # choice = input_with_exit(Fore.GREEN + "\n\nВыберите критерий поиска:\n" + Style.RESET_ALL + Fore.WHITE +
         #                "    - по названию, нажмите  " + Style.RESET_ALL + Fore.GREEN + "\'1\'\n" + Style.RESET_ALL + Fore.WHITE +
         #                "    - по жанру и диапазону\n"
@@ -256,16 +253,20 @@ q - 🚪   Exit """)
 
                 logger.info("Пользователь выбрал поиск по названию фильма")
                 print()
+                # Ввод данных для поиска по названию
                 name = f"%{input_with_exit('\nВведите название фильма: ')}%"
 
-                total = show_total(NAME_TOTAL, name)#show_total(name, None, None)
+                # Получение общего кол-ва совпадений по запросу
+                all_total, _ = get_by(NAME_TOTAL, name)
+                total = all_total[0][0]
+
                 if total == 0:
                     print("По данному запросу фильмы не найдены.")
                     continue
 
                 title = f"\n========= Вывод фильмов из БД '{db_name}' по названию =========="
 
-                fetch_function = show_films_by
+                fetch_function = get_by
                 fetch_args = (GET_BY_NAME, name,)
                 info_args = (total, title, None)
 
@@ -281,9 +282,8 @@ q - 🚪   Exit """)
                 print()
 
                 # Вывод на экран терминала списка жанров
-                rows, headers = show_films_by(GET_GENRES)
+                rows, headers = get_by(GET_GENRES)
                 number_genres = len(rows)
-
 
                 print(Fore.YELLOW + f"\n======== Список жанров =======")
                 print(tabulate(rows, headers=headers, tablefmt="psql"))
@@ -307,10 +307,12 @@ q - 🚪   Exit """)
                         print(Fore.RED + "\n\tНекорректный ввод года")
                         continue
 
-                total = show_total(GENRES_TOTAL,
+                # Получение общего кол-ва совпадений по запросу
+                all_total, _ = get_by(GENRES_TOTAL,
                                     num_genre,
                                     year_from,
                                     year_to)
+                total = all_total[0][0]
 
                 if total == 0:
                     print("По данному запросу фильмы не найдены.")
@@ -319,7 +321,7 @@ q - 🚪   Exit """)
                 title = f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' ========="
                 genre = rows[num_genre-1][1]
 
-                fetch_function = show_films_by
+                fetch_function = get_by
                 fetch_args = (GET_BY_GENRES_AND_YEARS, num_genre, year_from, year_to)
                 info_args = (total, title, genre)
                  # Название выбранного жанра
@@ -334,7 +336,7 @@ q - 🚪   Exit """)
                     return #exit()
 
             elif choice == "3":
-                output_number_top()
+                output_top_queries()
 
             elif choice == "4":
                 output_last_queries()
@@ -345,11 +347,6 @@ q - 🚪   Exit """)
             else:
                 print(Fore.RED + "\nВы ввели некорректный символ для выбора.\n")
                 continue # Возвращаем в начало цикла, если выбор неверный
-            # if choice in ("1", "2"):
-            #     result = show_paginated_results(fetch_function, fetch_args, info_args)
-            #
-            #     if result == "exit":
-            #         return #exit()
 
         except mysql.connector.Error:
             print(Fore.RED + "Ошибка при обращении к базе данных. Попробуйте позже.")
@@ -358,9 +355,11 @@ q - 🚪   Exit """)
 
 
 # Выводим 5 самых часто посылаемых запросов и информацию об их количестве
-def output_number_top() -> None:
+def output_top_queries() -> None:
 
     queries = get_top_queries()
+
+    print(Fore.YELLOW + "========== Top queries ==========" + Style.RESET_ALL + Fore.WHITE)
 
     for i, q in enumerate(queries, start=1):
 
@@ -374,7 +373,9 @@ def output_number_top() -> None:
 # Выводим 5 самых последних запросов
 def output_last_queries() -> None:
     queries = get_last_queries()
-    #print(queries)
+
+    print(Fore.YELLOW + "========== Recent queries ==========" + Style.RESET_ALL + Fore.WHITE)
+
     for i, q in enumerate(queries, start=1):
 
         if q["search_type"] == "by_name":
