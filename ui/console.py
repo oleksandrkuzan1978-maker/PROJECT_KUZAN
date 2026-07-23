@@ -18,7 +18,6 @@ import logging
 import os
 import platform
 
-
 logger = logging.getLogger(__name__)
 
 db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
@@ -26,7 +25,8 @@ db_name = dbconfig.get("database", "unknown")  # По умолчанию get в�
 logger.info("Запуск консольного интерфейса")
 
 PAGE_SIZE = 10
-init(autoreset=True) # Для разноцветного ввода
+
+init(autoreset=True)  # Для разноцветного ввода
 
 
 # ui/console.py
@@ -46,7 +46,7 @@ def input_with_exit(prompt: str) -> str:
 
 
 @funclog
-def input_number(message:str) -> int | str | None:
+def input_number(message: str) -> int | str | None:
     """
     Запрашивает у пользователя целое число.
     """
@@ -65,6 +65,7 @@ def clear_screen() -> None:
     # Если ОС Windows, берем 'cls', иначе (macOS/Linux) — 'clear'
     command = 'cls' if platform.system().lower() == 'windows' else 'clear'
     os.system(command)
+
 
 @funclog
 def get_navigation(pages: int) -> tuple[str, None | int] | None:
@@ -126,7 +127,7 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
 
 @funclog
 def show_paginated_results(fetch_function: Callable
-                           , fetch_args: tuple[str|int]
+                           , fetch_args: tuple[str | int]
                            , info_args: tuple[int, str, Any]) -> str:
     """
        Отображает результаты поиска постранично и организует навигацию
@@ -170,7 +171,9 @@ def show_paginated_results(fetch_function: Callable
     page = 1
 
     while True:
+        # Очистка экрана
         clear_screen()
+
         print(Fore.YELLOW + title)
         offset = (page - 1) * PAGE_SIZE
         rows, headers = fetch_function(*fetch_args, offset)
@@ -178,7 +181,7 @@ def show_paginated_results(fetch_function: Callable
         print(tabulate(rows, headers=headers, tablefmt="psql"))
         print()
         if genre is not None:
-            print(Fore.CYAN + "Жанр:"+ Style.RESET_ALL + Fore.WHITE, genre)
+            print(Fore.CYAN + "Жанр:" + Style.RESET_ALL + Fore.WHITE, genre)
         print(f"Найдено: {total} фильма(ов)")
         print(f"Страница {page} из {pages}")
 
@@ -270,8 +273,8 @@ q - 🚪   Exit """)
                 fetch_args = (GET_BY_NAME, name,)
                 info_args = (total, title, None)
 
-
                 save_query("by_name", query=name)  # Запись запроса в коллекцию MongoDB
+
                 result = show_paginated_results(fetch_function, fetch_args, info_args)
                 if result == "exit":
                     return  # exit()
@@ -309,9 +312,9 @@ q - 🚪   Exit """)
 
                 # Получение общего кол-ва совпадений по запросу
                 all_total, _ = get_by(GENRES_TOTAL,
-                                    num_genre,
-                                    year_from,
-                                    year_to)
+                                      num_genre,
+                                      year_from,
+                                      year_to)
                 total = all_total[0][0]
 
                 if total == 0:
@@ -319,21 +322,24 @@ q - 🚪   Exit """)
                     continue
 
                 title = f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' ========="
-                genre = rows[num_genre-1][1]
+                genre = rows[num_genre - 1][1]
 
                 fetch_function = get_by
                 fetch_args = (GET_BY_GENRES_AND_YEARS, num_genre, year_from, year_to)
                 info_args = (total, title, genre)
-                 # Название выбранного жанра
-
+                # Название выбранного жанра
 
                 # save_query("by_genre_years", genre=genre, year_from=year_from, year_to=year_to) # Запись запроса в коллекцию MongoDB
+                if year_from == year_to:
+                    save_query("by_genre_years", query=f"Genre: {genre}, year: {year_from}")
                 save_query("by_genre_years", query=f"Genre: {genre}, years: {year_from}-{year_to}")
+
+
 
                 result = show_paginated_results(fetch_function, fetch_args, info_args)
 
                 if result == "exit":
-                    return #exit()
+                    return  # exit()
 
             elif choice == "3":
                 output_top_queries()
@@ -346,7 +352,7 @@ q - 🚪   Exit """)
                 return
             else:
                 print(Fore.RED + "\nВы ввели некорректный символ для выбора.\n")
-                continue # Возвращаем в начало цикла, если выбор неверный
+                continue  # Возвращаем в начало цикла, если выбор неверный
 
         except mysql.connector.Error:
             print(Fore.RED + "Ошибка при обращении к базе данных. Попробуйте позже.")
@@ -356,7 +362,6 @@ q - 🚪   Exit """)
 
 # Выводим 5 самых часто посылаемых запросов и информацию об их количестве
 def output_top_queries() -> None:
-
     queries = get_top_queries()
 
     print(Fore.YELLOW + "========== Top queries ==========" + Style.RESET_ALL + Fore.WHITE)
@@ -367,7 +372,7 @@ def output_top_queries() -> None:
             print(f"{i}. Search keyword: {q["_id"]["query"]}")
         else:
             print(f"{i}. {q["_id"]["query"]}")
-        print(f"   Number of requests: {q["count"]}")
+        print(f"   Number of requests: {q["count"]}\n")
 
 
 # Выводим 5 самых последних запросов
@@ -383,20 +388,3 @@ def output_last_queries() -> None:
         else:
             print(f"{i}. {q["query"]}")
         print(f"   Request date: {q["created_at"].strftime("%Y-%m-%d %H:%M:%S")}\n")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

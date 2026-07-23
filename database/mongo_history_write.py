@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 DB_NAME = "ich_edit"
 COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
 
-
+# Ф-ция сохранения результата запроса в базе данных MongoDB
 def save_query(search_type, query):
 
     document = {
