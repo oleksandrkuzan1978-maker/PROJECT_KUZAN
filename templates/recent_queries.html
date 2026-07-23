@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Последние запросы
+{% endblock %}
+
+
+{% block header %}
+
+    <header class="bg-primary text-white py-4">
+
+        <div class="container">
+
+            <h1 class="h2 mb-1">
+                🕒 Последние запросы
+            </h1>
+
+            <p class="mb-0">
+                Недавно выполненные поисковые запросы
+            </p>
+
+        </div>
+
+    </header>
+
+{% endblock %}
+
+
+{% block content %}
+
+    {% if error %}
+
+        <div
+            class="alert alert-danger"
+            role="alert"
+        >
+            {{ error }}
+        </div>
+
+    {% elif queries %}
+
+        <div class="card border-0 shadow-sm">
+
+            <div class="card-body p-0">
+
+                <div class="table-responsive">
+
+                    <table class="table table-hover align-middle mb-0">
+
+                        <thead class="table-dark">
+
+                            <tr>
+
+                                <th scope="col">
+                                    №
+                                </th>
+
+                                <th scope="col">
+                                    Тип поиска
+                                </th>
+
+                                <th scope="col">
+                                    Запрос
+                                </th>
+
+                                <th scope="col">
+                                    Дата
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {% for query_item in queries %}
+
+                                <tr>
+
+                                    <th scope="row">
+                                        {{ loop.index }}
+                                    </th>
+
+                                    <td>
+
+                                        {% if query_item.search_type == "by_name" %}
+
+                                            <span class="badge text-bg-primary">
+                                                По названию
+                                            </span>
+
+                                        {% elif query_item.search_type == "by_genre_years" %}
+
+                                            <span class="badge text-bg-success">
+                                                По жанру и годам
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="badge text-bg-secondary">
+                                                {{ query_item.search_type }}
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                    <td>
+                                        {{ query_item.query }}
+                                    </td>
+
+                                    <td>
+                                        {{ query_item.created_at }}
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    {% else %}
+
+        <div
+            class="alert alert-info"
+            role="alert"
+        >
+            История поиска пока пуста.
+        </div>
+
+    {% endif %}
+
+
+    <div class="d-flex gap-2 flex-wrap mt-4">
+
+        <a
+            href="{{ url_for('index') }}"
+            class="btn btn-outline-primary"
+        >
+            Вернуться к поиску
+        </a>
+
+        <a
+            href="{{ url_for('top_queries') }}"
+            class="btn btn-outline-secondary"
+        >
+            Популярные запросы
+        </a>
+
+    </div>
+
+{% endblock %}

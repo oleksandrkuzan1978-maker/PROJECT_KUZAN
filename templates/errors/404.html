@@ -1,10 +1,64 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+
+{% block title %}
+    Страница не найдена
+{% endblock %}
+
+
+{% block header %}
+
+    <header class="bg-warning py-5">
+
+        <div class="container text-center">
+
+            <div class="display-1 fw-bold">
+                404
+            </div>
+
+            <h1 class="h2">
+                Страница не найдена
+            </h1>
+
+        </div>
+
+    </header>
+
+{% endblock %}
+
+
+{% block content %}
+
+    <div class="row justify-content-center">
+
+        <div class="col-12 col-md-8 col-lg-6">
+
+            <div class="card border-0 shadow-sm">
+
+                <div class="card-body p-5 text-center">
+
+                    <p class="lead">
+                        Запрашиваемой страницы не существует.
+                    </p>
+
+                    <p class="text-secondary">
+                        Возможно, адрес был введён неправильно
+                        или страница была перемещена.
+                    </p>
+
+                    <a
+                        href="{{ url_for('index') }}"
+                        class="btn btn-primary btn-lg"
+                    >
+                        Вернуться к поиску
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+{% endblock %}
