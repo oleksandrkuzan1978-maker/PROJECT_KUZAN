@@ -34,17 +34,14 @@ logger = logging.getLogger(__name__)  # Создаю логгер с имене�
 # Приватная ф-ция осуществляет соединение
 def _execute(query: str, *params: Any):
 
-    connection = get_connection()
+    with get_connection() as connection:
+        with connection.cursor() as  cursor:
+            return execute_query(
+                cursor,
+                query,
+                *params)
 
-    try:
-        cursor = connection.cursor()
-        return execute_query(
-            cursor,
-            query,
-            *params)
-    finally:
-        connection.close()
-        logger.info("Соединение для SQL-запросов закрыто")
+logger.info("Соединение для SQL-запросов закрыто")
 
 
 # Ф-ция возвращает результаты различных запросов
