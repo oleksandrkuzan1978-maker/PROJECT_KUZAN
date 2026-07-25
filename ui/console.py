@@ -25,6 +25,8 @@ db_name = dbconfig.get("database", "unknown")  # По умолчанию get в�
 logger.info("Запуск консольного интерфейса")
 
 PAGE_SIZE = 10
+MIN_YEAR = 1901
+MAX_YEAR = 2155
 
 init(autoreset=True)  # Для разноцветного ввода
 
@@ -295,21 +297,26 @@ q - 🚪   Exit """)
                 while True:
                     num_genre = input_number(Fore.GREEN + "Введите номер жанра: " + Style.RESET_ALL + Fore.WHITE)
                     if 1 <= num_genre <= number_genres:
-
                         break
                     else:
                         print("\n\tВыбранный вами жанр отсутствует в списке\n")
                         continue
 
                 while True:
+
                     year_from = input_number(Fore.WHITE + "Введите начальный год диапазона (4 цифры): ")
                     year_to = input_number(Fore.WHITE + "Введите конечный год диапазона (4 цифры): ")
+                    # Ограничение диапазона годов для корректного выполнения SQL-запросов
+                    if year_from < MIN_YEAR:
+                        year_from = MIN_YEAR
+                    if year_to > MAX_YEAR:
+                        year_to = MAX_YEAR
+                    # Проверка корректности ввода диапазона лет
                     if len(str(year_from)) == len(str(year_to)) == 4 and year_from <= year_to:
                         break
                     else:
                         print(Fore.RED + "\n\tНекорректный ввод года")
                         continue
-
                 # Получение общего кол-ва совпадений по запросу
                 all_total, _ = get_by(GENRES_TOTAL,
                                       num_genre,
@@ -333,8 +340,6 @@ q - 🚪   Exit """)
                 if year_from == year_to:
                     save_query("by_genre_years", query=f"Genre: {genre}, year: {year_from}")
                 save_query("by_genre_years", query=f"Genre: {genre}, years: {year_from}-{year_to}")
-
-
 
                 result = show_paginated_results(fetch_function, fetch_args, info_args)
 

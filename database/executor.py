@@ -37,9 +37,9 @@ def execute_query(cursor: MySQLCursorAbstract, query: str, *params:Any,) -> tupl
         logger.debug("Выполняется SQL-запрос к БД ...")
         cursor.execute(query, params) # Выполняется SQL-запрос. Результат хранится внутри курсора
 
-        rows = cursor.fetchall() # Методом курсора достаем сразу весь результат запроса из курсора.
-                                 # Переменная rows - список кортежей. Каждый кортеж - это одна строка таблицы
-        return rows, [col[0] for col in cursor.description] # второй эл-нт - это шапка таблицы рез-тов
+        #cursor.fetchall() # Методом курсора достаем сразу весь результат запроса из курсора.
+                                 # Cписок кортежей. Каждый кортеж - это одна строка таблицы
+        return cursor.fetchall(), [col[0] for col in cursor.description] # второй эл-нт - это шапка таблицы рез-тов
 
     except mysql.connector.ProgrammingError as pe:
         logger.exception("Неверный запрос: %s", pe)  # ошибки в запросе query

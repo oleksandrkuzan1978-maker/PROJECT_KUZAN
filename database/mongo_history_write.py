@@ -32,6 +32,7 @@ def save_query(search_type, query):
         with MongoClient(MONGODB_URL_WRITE) as client:
 
             collection = client[DB_NAME][COLLECTION_NAME]
+
             collection.insert_one(document)
 
             # Если сильно хочется посмотреть, что и как записалось в коллекцию

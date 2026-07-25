@@ -34,8 +34,10 @@ NAME_TOTAL = """
 GET_BY_NAME = """
               SELECT title, description, release_year
               FROM film
-              WHERE title LIKE %s LIMIT 10
-              OFFSET %s """
+              WHERE title LIKE %s
+              ORDER BY title
+                  LIMIT 10
+                  OFFSET %s """
 
 
 # ЗАПРОС из БД по общему кол-ву совпадений по жанрам и годам

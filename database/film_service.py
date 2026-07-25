@@ -32,7 +32,7 @@ import logging
 # Метод getLogger возвращает объект логгера с именем этого модуля.
 logger = logging.getLogger(__name__)  # Создаю логгер с именем "file_service".
 # Приватная ф-ция осуществляет соединение
-def _execute(query, *params):
+def _execute(query: str, *params: Any):
 
     connection = get_connection()
 

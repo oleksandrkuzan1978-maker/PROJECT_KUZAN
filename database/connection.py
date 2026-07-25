@@ -40,6 +40,7 @@ def get_connection() -> MySQLConnectionAbstract: # None | PooledMySQLConnection 
         return conn  # это объект соединения (MySQLConnection)
     except mysql.connector.Error as err:
         logger.exception("Ошибка подключения к MySQL: '%s'", err)
+        raise
 
 # неверный пароль;
 # сервер MySQL не запущен;

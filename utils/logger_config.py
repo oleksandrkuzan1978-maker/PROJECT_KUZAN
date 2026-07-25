@@ -108,7 +108,7 @@ def setup_logging() -> None:
     info_handler.addFilter(InfoFilter())
 
     # связываю обработчики с форматерами:
-    # «Когда *_handler записывает сообщение в файл, оформляю его по шаблону file_formatter.»
+    # «Когда *_handler записывает сообщение в файл, оформляю его по шаблону file_formatter»
     info_handler.setFormatter(file_formatter)
     error_handler.setFormatter(file_formatter)
     console_handler.setFormatter(console_formatter)
