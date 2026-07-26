@@ -1,21 +1,9 @@
 """
-Модуль для создания соединения с базой данных MySQL.
+Создание соединений с базой данных MySQL.
 
-Назначение:
-    Инкапсулирует логику подключения к СУБД MySQL и
-    предоставляет функцию получения объекта соединения.
-
-Использование:
-    from database.connection import get_connection
-
-    connection = get_connection()
-
-Требования:
-    - установлен пакет mysql-connector-python;
-    - настроен словарь dbconfig в файле config/local_settings.py.
-
-Содержит:
-    get_connection() -> mysql.connector.MySQLConnection
+Параметры подключения загружаются из config.local_settings.
+Модуль не выполняет SQL-запросы и не обрабатывает ошибки
+на уровне пользовательского интерфейса.
 """
 
 # database/connection.py
@@ -30,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 @funclog
 def get_connection() -> MySQLConnectionAbstract: # None | PooledMySQLConnection | MySQLConnectionAbstract
+
     logger.debug("Попытка подключения к БД '%s'.\n"
                  "Используются параметры подключения из local_settings.py."
                  , dbconfig.get("database"))
@@ -38,9 +27,3 @@ def get_connection() -> MySQLConnectionAbstract: # None | PooledMySQLConnection 
         **dbconfig)  # функция из библиотеки mysql.connector устанавливает соединение с сервером MySQL.
     logger.info("Успешное подключение к БД '%s'", dbconfig.get("database"))
     return conn  # это объект соединения (MySQLConnection)
-
-
-# неверный пароль;
-# сервер MySQL не запущен;
-# база данных отсутствует;
-# неправильный host.

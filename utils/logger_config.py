@@ -1,36 +1,10 @@
 """
-Настройка системы логирования приложения.
+Настройка системы журналирования приложения.
 
-Модуль содержит функцию setup_logging(), которая конфигурирует
-логирование для всего проекта.
-
-В процессе настройки создаются два обработчика:
-
-FileHandler — записывает сообщения в файл logs/errors.log;
-StreamHandler — выводит сообщения в консоль.
-
-Для каждого обработчика используется собственный форматтер:
-
-Formatter — для записи логов в файл;
-ColoredFormatter — для цветного отображения сообщений в терминале.
-
-Уровень логирования установлен в DEBUG, поэтому будут
-обрабатываться все сообщения уровней:
-
-DEBUG, INFO, WARNING, ERROR и CRITICAL.
-
-Пример использования:
-
-from utils.logger_config import setup_logging
-import logging
-
-setup_logging()
-
-logger = logging.getLogger(__name__)
-logger.info("Приложение запущено")
-
+Модуль создаёт обработчики для информационных, отладочных
+и ошибочных сообщений, задаёт формат записей и предоставляет
+декоратор для журналирования вызовов функций.
 """
-
 
 # utils/logger_config.py
 from colorlog import ColoredFormatter  # Для настройки цвета лог-сообщений в консоли
@@ -39,7 +13,6 @@ from functools import wraps
 import logging
 import os
 import sys
-
 
 def setup_logging() -> None:
     """
@@ -99,8 +72,9 @@ def setup_logging() -> None:
 
     # Создаем фильтр для info_handler чтобы в файл info.log попадали только сообщения уровня INFO
     class InfoFilter(logging.Filter):
-
+        """Пропускает только сообщения уровня INFO."""
         def filter(self, record) -> bool:
+            """Возвращает True только для записи уровня INFO."""
             return record.levelno == logging.INFO
 
     # Добавляем фильтр
@@ -122,11 +96,23 @@ def setup_logging() -> None:
         ]
     )
 
-
 # Декоратор, который записывает в info.log
 # все вызовы функции с её аргументами и результатом.
 def funclog(func: Callable) -> Callable:
+    """
+    Журналирует успешный вызов функции.
 
+    После выполнения записывает имя функции, переданные
+    позиционные аргументы и возвращённый результат. Исключения
+    не перехватывает и не логирует.
+
+    Args:
+        func:
+            Декорируемая функция.
+
+    Returns:
+        Функцию-обёртку с журналированием успешного вызова.
+    """
     logger = logging.getLogger(func.__module__)
 
     @wraps(func)
