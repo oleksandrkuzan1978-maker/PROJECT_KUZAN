@@ -88,11 +88,15 @@ def input_year_range() -> tuple[int, int] | None:
             year_from = MIN_YEAR
         if year_to > MAX_YEAR:
             year_to = MAX_YEAR
-        if year_from > year_to:
-            print(Fore.RED + "\nНачальный год не может быть больше конечного.")
+
+        if len(str(year_from)) == len(str(year_to)) == 4 and year_from <= year_to:
+            return year_from, year_to
+
+        else:
+            print(Fore.RED + "\n\tНекорректный ввод года")
             continue
 
-        return year_from, year_to
+
 
 
 # Ф-ция очистки экрана
