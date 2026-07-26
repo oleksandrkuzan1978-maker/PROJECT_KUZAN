@@ -35,8 +35,8 @@ GET_BY_NAME = """
               SELECT title, description, release_year
               FROM film
               WHERE title LIKE %s
-              ORDER BY title
-                  LIMIT 10
+              ORDER BY title, film_id
+                  LIMIT %s
                   OFFSET %s """
 
 
@@ -55,10 +55,12 @@ GET_BY_GENRES_AND_YEARS = """
                                    JOIN film_category AS fc USING (film_id)
                           WHERE category_id = %s
                             AND release_year BETWEEN %s AND %s 
-                              LIMIT 10
+                              ORDER BY f.title, f.film_id
+                              LIMIT %s
                               OFFSET %s """
 
 # ЗАПРОС жанров из БД 'sakila'
 GET_GENRES = """
-              SELECT category_id as "number", name as "name of genre"
-              FROM category """
+              SELECT category_id as number, name as name_genre
+              FROM category
+              ORDER BY category_id"""

@@ -5,13 +5,12 @@ from colorama import Fore, init, Style
 from config.local_settings import dbconfig
 from utils.logger_config import funclog
 from database.mongo_history_write import (save_query, get_top_queries, get_last_queries)
-from database.film_service import get_by
-from database.queries import (
-    NAME_TOTAL,
-    GENRES_TOTAL,
-    GET_BY_NAME,
-    GET_BY_GENRES_AND_YEARS,
-    GET_GENRES
+from database.film_service import (
+    count_films_by_genre_and_years,
+    count_films_by_name,
+    get_films_by_genre_and_years,
+    get_films_by_name,
+    get_genres,
 )
 import mysql.connector
 import logging
@@ -129,7 +128,7 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
 
 @funclog
 def show_paginated_results(fetch_function: Callable
-                           , fetch_args: tuple[str | int]
+                           , fetch_args: tuple[str | int, ...]
                            , info_args: tuple[int, str, Any]) -> str:
     """
        Отображает результаты поиска постранично и организует навигацию
@@ -178,7 +177,7 @@ def show_paginated_results(fetch_function: Callable
 
         print(Fore.YELLOW + title)
         offset = (page - 1) * PAGE_SIZE
-        rows, headers = fetch_function(*fetch_args, offset)
+        rows, headers = fetch_function(*fetch_args, PAGE_SIZE, offset)
 
         print(tabulate(rows, headers=headers, tablefmt="psql"))
         print()
@@ -259,11 +258,15 @@ q - 🚪   Exit """)
                 logger.info("Пользователь выбрал поиск по названию фильма")
                 print()
                 # Ввод данных для поиска по названию
-                name = f"%{input_with_exit('\nВведите название фильма: ')}%"
+                name = input_with_exit(
+                    "\nВведите название фильма: "
+                )
 
-                # Получение общего кол-ва совпадений по запросу
-                all_total, _ = get_by(NAME_TOTAL, name)
-                total = all_total[0][0]
+                if not name:
+                    print("Название фильма не должно быть пустым.")
+                    continue
+
+                total = count_films_by_name(name)
 
                 if total == 0:
                     print("По данному запросу фильмы не найдены.")
@@ -271,13 +274,12 @@ q - 🚪   Exit """)
 
                 title = f"\n========= Вывод фильмов из БД '{db_name}' по названию =========="
 
-                fetch_function = get_by
-                fetch_args = (GET_BY_NAME, name,)
+                fetch_args = (name,)
                 info_args = (total, title, None)
 
                 save_query("by_name", query=name)  # Запись запроса в коллекцию MongoDB
 
-                result = show_paginated_results(fetch_function, fetch_args, info_args)
+                result = show_paginated_results(get_films_by_name, fetch_args, info_args)
                 if result == "exit":
                     return  # exit()
 
@@ -287,8 +289,7 @@ q - 🚪   Exit """)
                 print()
 
                 # Вывод на экран терминала списка жанров
-                rows, headers = get_by(GET_GENRES)
-                number_genres = len(rows)
+                rows, headers = get_genres()
 
                 print(Fore.YELLOW + f"\n======== Список жанров =======")
                 print(tabulate(rows, headers=headers, tablefmt="psql"))
@@ -296,11 +297,12 @@ q - 🚪   Exit """)
                 # Ввод данных для поиска по жанрам и годам
                 while True:
                     num_genre = input_number(Fore.GREEN + "Введите номер жанра: " + Style.RESET_ALL + Fore.WHITE)
-                    if 1 <= num_genre <= number_genres:
+                    # Сразу находим нужный жанр из rows
+                    genre = next((genre_name for genre_id, genre_name in rows
+                                           if genre_id == num_genre), None,)
+                    if genre is not None:
                         break
-                    else:
-                        print("\n\tВыбранный вами жанр отсутствует в списке\n")
-                        continue
+                    print("\n\tВыбранный вами жанр отсутствует в списке\n")
 
                 while True:
 
@@ -318,30 +320,32 @@ q - 🚪   Exit """)
                         print(Fore.RED + "\n\tНекорректный ввод года")
                         continue
                 # Получение общего кол-ва совпадений по запросу
-                all_total, _ = get_by(GENRES_TOTAL,
-                                      num_genre,
-                                      year_from,
-                                      year_to)
-                total = all_total[0][0]
+                total = count_films_by_genre_and_years(
+                    num_genre,
+                    year_from,
+                    year_to,
+                )
 
                 if total == 0:
                     print("По данному запросу фильмы не найдены.")
                     continue
 
                 title = f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' ========="
-                genre = rows[num_genre - 1][1]
 
-                fetch_function = get_by
-                fetch_args = (GET_BY_GENRES_AND_YEARS, num_genre, year_from, year_to)
+                # fetch_function = get_films_by_genre_and_years
+                fetch_args = (
+                    num_genre,
+                    year_from,
+                    year_to,
+                )
                 info_args = (total, title, genre)
-                # Название выбранного жанра
 
-                # save_query("by_genre_years", genre=genre, year_from=year_from, year_to=year_to) # Запись запроса в коллекцию MongoDB
                 if year_from == year_to:
                     save_query("by_genre_years", query=f"Genre: {genre}, year: {year_from}")
-                save_query("by_genre_years", query=f"Genre: {genre}, years: {year_from}-{year_to}")
+                else:
+                    save_query("by_genre_years", query=f"Genre: {genre}, years: {year_from}-{year_to}")
 
-                result = show_paginated_results(fetch_function, fetch_args, info_args)
+                result = show_paginated_results(get_films_by_genre_and_years, fetch_args, info_args)
 
                 if result == "exit":
                     return  # exit()
@@ -358,6 +362,11 @@ q - 🚪   Exit """)
             else:
                 print(Fore.RED + "\nВы ввели некорректный символ для выбора.\n")
                 continue  # Возвращаем в начало цикла, если выбор неверный
+
+        except mysql.connector.ProgrammingError:
+            logger.exception("Ошибка в SQL-запросе приложения")
+            print(Fore.RED + "Внутренняя ошибка приложения.")
+            return
 
         except mysql.connector.Error:
             print(Fore.RED + "Ошибка при обращении к базе данных. Попробуйте позже.")

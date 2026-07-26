@@ -23,6 +23,8 @@
 
 from typing import Any
 from mysql.connector.cursor import MySQLCursorAbstract
+from numpy.ma.extras import row_stack
+
 from utils.logger_config import funclog
 import mysql.connector
 import logging
@@ -33,24 +35,13 @@ logger = logging.getLogger(__name__)  # Создаю логгер с имене�
 @funclog
 def execute_query(cursor: MySQLCursorAbstract, query: str, *params:Any,) -> tuple[list[tuple[Any, ...]], list[str]]:
 
-    try:  #В этом модуле стоит ловить ошибки выполнения SQL
-        logger.debug("Выполняется SQL-запрос к БД ...")
-        cursor.execute(query, params) # Выполняется SQL-запрос. Результат хранится внутри курсора
 
-        #cursor.fetchall() # Методом курсора достаем сразу весь результат запроса из курсора.
-                                 # Cписок кортежей. Каждый кортеж - это одна строка таблицы
-        return cursor.fetchall(), [col[0] for col in cursor.description] # второй эл-нт - это шапка таблицы рез-тов
+    logger.debug("Выполняется SQL-запрос к БД ...")
+    cursor.execute(query, params) # Выполняется SQL-запрос. Результат хранится внутри курсора
 
-    except mysql.connector.ProgrammingError as pe:
-        logger.exception("Неверный запрос: %s", pe)  # ошибки в запросе query
-        raise
+    rows = cursor.fetchall() # Методом курсора достаем сразу весь результат запроса из курсора.
+                             # Cписок кортежей. Каждый кортеж - это одна строка таблицы
+    headers = [col[0] for col in cursor.description] # второй эл-нт - это шапка таблицы рез-тов
+    return rows, headers
 
-    except mysql.connector.Error:  # отлавливает ошибки, связанные с MySQL: не верный пароль,
-                                          # не верное имя БД, ошибки в запросе, неверное количество параметров,
-                                          # потеря соединения...
-        logger.exception("Ошибка при выполнении SQL-запроса")
-        raise # raise нужен здесь, чтобы сообщение об ошибке, возникшей при вызове этого модуля
-              # передалось дальше, в модуль, который будет вызывать эту функцию
-    except Exception:
-        logger.exception("Неожиданная ошибка в execute_query().")
-        raise
+
