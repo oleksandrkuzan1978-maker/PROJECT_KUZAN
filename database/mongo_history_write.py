@@ -28,23 +28,17 @@ def save_query(search_type, query):
     if search_type == "by_name":
         document["query"] = document["query"].replace("%", "")  # Заменяем в названии фильма % на ""
 
-    try:
-        with MongoClient(MONGODB_URL_WRITE) as client:
+    with MongoClient(MONGODB_URL_WRITE) as client:
 
-            collection = client[DB_NAME][COLLECTION_NAME]
+        collection = client[DB_NAME][COLLECTION_NAME]
 
-            collection.insert_one(document)
+        collection.insert_one(document)
 
-            # Если сильно хочется посмотреть, что и как записалось в коллекцию
-            # for doc in collection.find():
-            #     print(doc)
+        # Если сильно хочется посмотреть, что и как записалось в коллекцию
+        # for doc in collection.find():
+        #     print(doc)
 
-        logger.info("Поисковый запрос сохранён в MongoDB")
-        print(f"Поисковый запрос {COLLECTION_NAME} сохранён в MongoDB")
-
-    except PyMongoError:
-        logger.exception("Ошибка записи поискового запроса в MongoDB")
-        raise
+    logger.info("Поисковый запрос сохранён в MongoDB")
 
 """************************ Возвращаем запросы ***************************"""
 
@@ -52,13 +46,11 @@ def save_query(search_type, query):
 def mongo_reader(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        try:
-            with MongoClient(MONGODB_URL_READ) as client:
-                collection = client[DB_NAME][COLLECTION_NAME]
-                return func(collection, *args, **kwargs)
-        except PyMongoError:
-            logger.exception("Ошибка чтения MongoDB")
-            raise
+
+        with MongoClient(MONGODB_URL_READ) as client:
+            collection = client[DB_NAME][COLLECTION_NAME]
+            return func(collection, *args, **kwargs)
+
     return wrapper
 
 # вернуть 5 самых популярных запросов.
@@ -79,105 +71,3 @@ def get_last_queries(collection, limit: int = 5):
     return list(collection.find({},
                                 {"_id": 0}).sort("created_at", -1).limit(limit))
 
-
-# # вернуть 5 самых популярных запросов.
-# def get_top_queries(limit: int = 5):
-#     try:
-#         with MongoClient(MONGODB_URL_READ) as client:
-#             collection = client[DB_NAME][COLLECTION_NAME]
-#             return list(
-#                 collection.aggregate([
-#                     {"$group": {"_id": {"search_type": "$search_type",
-#                                         "query": "$query"},
-#                                 "count": {"$sum": 1}}},
-#                     {"$sort": {"count": -1}},
-#                     {"$limit": limit}]))
-#     except PyMongoError:
-#         logger.exception("Ошибка чтения MongoDB")
-#         raise
-
-
-# # вернуть последние 5 запросов.
-# def get_last_queries(limit: int = 5):
-#     try:
-#         with MongoClient(MONGODB_URL_READ) as client:
-#             collection = client[DB_NAME][COLLECTION_NAME]
-#             return list(collection.find({},
-#                                         {"_id": 0}).sort("created_at", -1).limit(limit))
-#     except PyMongoError:
-#         logger.exception("Ошибка чтения MongoDB")
-#         raise
-
-# """ ********************** Блок задач **************************** """
-
-# # === Задача 1 (пример решения) ===
-# task_statement.append(
-#     " 1. Из коллекции customers выяснить из какого города 'Sven Ottlieb'"
-#
-# )
-#
-# # ----- в result подставляем решение из mongodb -----
-# # Вставляем сюда решение из МонгоДБ, удалив только строку о клиенте
-# filter = {
-#     'ContactName': 'Sven Ottlieb'
-# }
-# project = {
-#     'ContactName': 1,
-#     'City': 1,
-#     '_id': 0
-# }
-#
-# result = client['ich']['customers'].find(
-#     filter=filter,
-#     projection=project
-# )
-#
-# data.append(result)
-#
-# # ===== Задача 2 =====
-# task_statement.append(
-#     '2. Из коллекции ich.US_Adult_Income найти возраст самого взрослого человека'
-# )
-#
-# # ----- в result подставляем решение из mongodb -----
-# # Requires the PyMongo package.
-# #
-#
-# #client = MongoClient(
-# #    'mongodb://ich1:password@mongo.itcareerhub.de/?readPreference=primary&ssl=false&authMechanism=DEFAULT&authSource=ich')
-# result = client['ich']['customers'].aggregate([
-#     {
-#         '$project': {
-#             'age': 1,
-#             '_id': 0
-#         }
-#     }, {
-#         '$sort': {
-#             'age': -1
-#         }
-#     }, {
-#         '$limit': 1
-#     }
-# ])
-#
-# data.append(result)
-
-
-# """ *************** Блок вывода всех результатов на печать *************** """
-#
-# if len(data) != len(task_statement):
-#     raise IndexError("Ошибка!!! Кол-во заданий НЕ РАВНО кол-ву решений!!!")
-#
-# # Цикл по задачам
-# for task_num, result in enumerate(data):
-#     print(50 * '=')
-#     print(task_statement[task_num])
-#     print()
-#
-#     # Цикл по выводу документов решения
-#     docs = list(result)
-#     for idx, doc in enumerate(docs[:TIMES]):
-#         # print(idx, 50 * '-')
-#         pprint(doc)
-#
-#     print(f"Total: {len(docs)} docs")

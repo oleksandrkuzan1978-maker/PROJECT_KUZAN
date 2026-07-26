@@ -33,14 +33,12 @@ def get_connection() -> MySQLConnectionAbstract: # None | PooledMySQLConnection 
     logger.debug("Попытка подключения к БД '%s'.\n"
                  "Используются параметры подключения из local_settings.py."
                  , dbconfig.get("database"))
-    try:  # В этом модуле стоит ловить ошибки подключения
-        conn = mysql.connector.connect(
-            **dbconfig)  # функция из библиотеки mysql.connector устанавливает соединение с сервером MySQL.
-        logger.info("Успешное подключение к БД '%s'", dbconfig.get("database"))
-        return conn  # это объект соединения (MySQLConnection)
-    except mysql.connector.Error as err:
-        logger.exception("Ошибка подключения к MySQL: '%s'", err)
-        raise
+
+    conn = mysql.connector.connect(
+        **dbconfig)  # функция из библиотеки mysql.connector устанавливает соединение с сервером MySQL.
+    logger.info("Успешное подключение к БД '%s'", dbconfig.get("database"))
+    return conn  # это объект соединения (MySQLConnection)
+
 
 # неверный пароль;
 # сервер MySQL не запущен;

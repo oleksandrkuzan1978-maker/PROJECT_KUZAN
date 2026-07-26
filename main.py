@@ -35,12 +35,16 @@ def main() -> None:
         get_user_input()
 
         logger.info("=== Все запросы выполнены успешно ===")
-        logger.info("Завершение приложения")
 
     except mysql.connector.Error:
         logger.error("Приложение завершено из-за ошибки работы с БД")
         print("Ошибка при работе с базой данных.")
         sys.exit(1)
+
+    except (KeyboardInterrupt, EOFError):
+        logger.info("Приложение завершено пользователем")
+        print("\nРабота приложения завершена.")
+
     except Exception:
         logger.critical(
             "Необработанное исключение достигло main().",
@@ -48,6 +52,9 @@ def main() -> None:
         )
         print("Произошла критическая ошибка.")
         sys.exit(1)
+    else:
+        logger.info("Завершение приложения")
+
 
 if __name__ == "__main__":
     main()

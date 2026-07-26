@@ -23,10 +23,7 @@
 
 from typing import Any
 from mysql.connector.cursor import MySQLCursorAbstract
-from numpy.ma.extras import row_stack
-
 from utils.logger_config import funclog
-import mysql.connector
 import logging
 
 
@@ -35,13 +32,13 @@ logger = logging.getLogger(__name__)  # Создаю логгер с имене�
 @funclog
 def execute_query(cursor: MySQLCursorAbstract, query: str, *params:Any,) -> tuple[list[tuple[Any, ...]], list[str]]:
 
-
     logger.debug("Выполняется SQL-запрос к БД ...")
     cursor.execute(query, params) # Выполняется SQL-запрос. Результат хранится внутри курсора
 
     rows = cursor.fetchall() # Методом курсора достаем сразу весь результат запроса из курсора.
                              # Cписок кортежей. Каждый кортеж - это одна строка таблицы
-    headers = [col[0] for col in cursor.description] # второй эл-нт - это шапка таблицы рез-тов
+    headers = [col[0] for col in cursor.description or ()] # второй эл-нт - это шапка таблицы рез-тов
+
     return rows, headers
 
 

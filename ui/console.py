@@ -1,3 +1,15 @@
+"""
+Консольный интерфейс приложения поиска фильмов.
+
+Модуль отвечает за ввод и проверку пользовательских данных, запуск
+сервисных функций поиска, постраничный вывод результатов и отображение
+истории запросов из MongoDB. Детали SQL-запросов и подключения к MySQL
+скрыты в модулях слоя database.
+
+Команда q завершает приложение в меню и при вводе числовых значений.
+Ошибка сохранения истории в MongoDB не прерывает успешный поиск фильмов.
+"""
+
 from collections.abc import Callable
 from typing import Any
 from tabulate import tabulate
@@ -34,6 +46,7 @@ init(autoreset=True)  # Для разноцветного ввода
 # ui/console.py
 def input_command(prompt: str) -> str:
     """Запрашивает команду и обрабатывает команду выхода."""
+
     value = input(prompt).strip().lower()
 
     if value == "q":
@@ -51,7 +64,7 @@ def input_text(prompt: str) -> str:
         if value:
             return value
 
-        print(Fore.RED + "Значение не должно быть пустым.")
+        print(Fore.RED + "\nЗначение не должно быть пустым.")
 
 
 def input_number(message: str) -> int:
@@ -62,34 +75,21 @@ def input_number(message: str) -> int:
         if value.isdigit():
             return int(value)
 
-        print(Fore.RED + "Введите число.")
+        print(Fore.RED + "\nВведите число.")
 
 
-def input_year_range() -> tuple[int, int]:
+def input_year_range() -> tuple[int, int] | None:
     """Запрашивает и проверяет диапазон годов."""
     while True:
-        year_from = input_number("Введите начальный год диапазона (4 цифры): ")
+        year_from = input_number("\nВведите начальный год диапазона (4 цифры): ")
         year_to = input_number("Введите конечный год диапазона (4 цифры): ")
 
-        if not MIN_YEAR <= year_from <= MAX_YEAR:
-            print(
-                Fore.RED
-                + f"Начальный год должен быть от {MIN_YEAR} до {MAX_YEAR}."
-            )
-            continue
-
-        if not MIN_YEAR <= year_to <= MAX_YEAR:
-            print(
-                Fore.RED
-                + f"Конечный год должен быть от {MIN_YEAR} до {MAX_YEAR}."
-            )
-            continue
-
+        if year_from < MIN_YEAR:
+            year_from = MIN_YEAR
+        if year_to > MAX_YEAR:
+            year_to = MAX_YEAR
         if year_from > year_to:
-            print(
-                Fore.RED
-                + "Начальный год не может быть больше конечного."
-            )
+            print(Fore.RED + "\nНачальный год не может быть больше конечного.")
             continue
 
         return year_from, year_to
@@ -97,43 +97,56 @@ def input_year_range() -> tuple[int, int]:
 
 # Ф-ция очистки экрана
 def clear_screen() -> None:
-    # Если ОС Windows, берем 'cls', иначе (macOS/Linux) — 'clear'
+    """ Очищает экран терминала.
+        Для Windows выполняет команду «cls»,
+        для Linux и macOS — команду «clear»."""
+
     command = 'cls' if platform.system().lower() == 'windows' else 'clear'
     os.system(command)
 
 
 @funclog
 def get_navigation(pages: int) -> tuple[str, None | int] | None:
-    # Вариант для input
     """
-      Запрашивает у пользователя команду навигации по страницам результатов.
+       Запрашивает команду постраничной навигации.
 
-      Пользователь может перейти к следующей или предыдущей странице,
-      начать новый поиск, завершить работу программы либо перейти
-      на страницу с указанным номером.
+       Позволяет перейти вперёд или назад, открыть страницу по
+       номеру, вернуться к новому поиску либо завершить приложение.
+       Некорректный ввод запрашивается повторно.
 
-      Args:
-          pages:
-              Общее количество страниц результатов поиска.
+       Args:
+           pages: Общее количество доступных страниц.
 
-      Returns:
-          Кортеж вида (action, value), где:
+       Returns:
+           Кортеж (action, value), где action принимает значение:
 
-          - "next", None   — перейти к следующей странице;
-          - "prev", None   — перейти к предыдущей странице;
-          - "search", None — начать новый поиск;
-          - "exit", None   — завершить программу;
-          - "goto", page   — перейти на страницу с номером page.
+           - «next» — следующая страница;
+           - «prev» — предыдущая страница;
+           - «goto» — переход к странице с номером value;
+           - «search» — возврат к новому поиску;
+           - "menu", None — вернуться в главное меню;
+           - «exit» — завершение приложения.
 
-      Notes:
-          Функция повторяет запрос до тех пор, пока пользователь
-          не введёт корректную команду.
-      """
+           Для всех действий, кроме «goto», значение value равно None.
+       """
     while True:
-        print("\nНажмите " + Fore.YELLOW + "[n]" + Style.RESET_ALL + Fore.WHITE + "- далее " + Fore.YELLOW + "[p]"
-              + Style.RESET_ALL + Fore.WHITE + "- назад, " + Fore.YELLOW + "[f]" + Style.RESET_ALL + Fore.WHITE +
-              "- новый поиск, " + Fore.YELLOW + "[q]" + Style.RESET_ALL + Fore.WHITE + "- выход или введите"
-              + Fore.YELLOW + " номер страницы: " + Style.RESET_ALL + Fore.WHITE, end="")
+
+        print(
+            "\nНажмите "
+            + Fore.YELLOW + "[n]"
+            + Style.RESET_ALL + Fore.WHITE + " — далее, "
+            + Fore.YELLOW + "[p]"
+            + Style.RESET_ALL + Fore.WHITE + " — назад, "
+            + Fore.YELLOW + "[f]"
+            + Style.RESET_ALL + Fore.WHITE + " — изменить поиск, "
+            + Fore.YELLOW + "[m]"
+            + Style.RESET_ALL + Fore.WHITE + " — главное меню, "
+            + Fore.YELLOW + "[q]"
+            + Style.RESET_ALL + Fore.WHITE
+            + " — выход или введите номер страницы: ",
+            end="",
+        )
+
         command = input().strip().lower()
 
         if command == "n":
@@ -144,6 +157,9 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
 
         if command == "f":
             return "search", None
+
+        if command == "m":
+            return "menu", None
 
         if command == "q":
             return "exit", None
@@ -165,42 +181,32 @@ def show_paginated_results(fetch_function: Callable
                            , fetch_args: tuple[str | int, ...]
                            , info_args: tuple[int, str, Any]) -> str:
     """
-       Отображает результаты поиска постранично и организует навигацию
-       между страницами.
+     Выводит результаты поиска с постраничной навигацией.
 
-       Функция запрашивает очередную страницу данных через переданную
-       функцию выборки, выводит результаты в виде таблицы и позволяет
-       пользователю:
+     Для текущей страницы вычисляет смещение, передаёт функции
+     выборки постоянные аргументы, размер страницы и смещение,
+     после чего отображает полученные строки в виде таблицы.
 
-       - перейти к следующей странице;
-       - перейти к предыдущей странице;
-       - открыть страницу по её номеру;
-       - начать новый поиск;
-       - завершить работу программы.
+     Args:
+         fetch_function:
+             Функция получения одной страницы результатов.
+             После аргументов из fetch_args она должна принимать
+             параметры limit и offset.
 
-       Args:
-           fetch_function:
-               Функция, получающая очередную страницу результатов
-               из базы данных.
+         fetch_args:
+             Постоянные аргументы функции выборки без параметров
+             limit и offset.
 
-           fetch_args:
-               Аргументы, передаваемые функции fetch_function
-               (без параметра offset).
+         info_args:
+             Кортеж (total, title, genre), содержащий общее
+             количество найденных фильмов, заголовок результатов
+             и название жанра либо None.
 
-           info_args:
-               Кортеж, содержащий:
+     Returns:
+         «search», если пользователь вернулся к новому поиску,
+         или «exit», если пользователь завершил приложение.
+     """
 
-               - общее количество найденных фильмов;
-               - заголовок окна результатов;
-               - название жанра (или None).
-
-       Returns:
-           str:
-               Возвращает:
-
-               - "search" — если пользователь решил выполнить новый поиск;
-               - "exit" — если пользователь завершил работу программы.
-       """
     total, title, genre = info_args
     pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
     page = 1
@@ -217,7 +223,7 @@ def show_paginated_results(fetch_function: Callable
         print()
         if genre is not None:
             print(Fore.CYAN + "Жанр:" + Style.RESET_ALL + Fore.WHITE, genre)
-        print(f"Найдено: {total} фильма(ов)")
+        print(f"\nНайдено: {total} фильма(ов)")
         print(f"Страница {page} из {pages}")
 
         action, value = get_navigation(pages)
@@ -232,12 +238,17 @@ def show_paginated_results(fetch_function: Callable
             page = value
 
         elif action == "search":
-            break
+            return "search"
+
+        elif action == "menu":
+            return "menu"
 
         elif action == "exit":
-            print(Fore.CYAN + "\nСпасибо за использование программы!\n")
+            print(
+                Fore.CYAN
+                + "\nСпасибо за использование программы!\n"
+            )
             return "exit"
-    return "search"
 
 
 def save_query_safely(search_type: str, query: str) -> None:
@@ -252,15 +263,57 @@ def save_query_safely(search_type: str, query: str) -> None:
         )
 
 
+def select_genre(rows: list[tuple],) -> tuple[int, str]:
+    """
+    Запрашивает жанр из ранее полученного списка.
+
+    Returns:
+        Кортеж (genre_id, genre_name).
+    """
+
+    while True:
+        genre_id = input_number(
+            Fore.GREEN
+            + "\nВведите номер жанра: "
+            + Style.RESET_ALL
+            + Fore.WHITE
+        )
+
+        genre_name = next((name for current_id, name in rows
+                           if current_id == genre_id), None,)
+
+        if genre_name is not None:
+            return genre_id, genre_name
+
+        print(
+            Fore.RED
+            + "\nВыбранный жанр отсутствует в списке.\n"
+        )
+
+
 def handle_name_search() -> str | None:
-    """Выполняет поиск фильмов по названию."""
+    """Выполняет полный сценарий поиска фильмов по названию.
+
+    Запрашивает название, получает количество совпадений,
+    сохраняет запрос в истории и запускает постраничный вывод
+    найденных фильмов.
+
+    Returns:
+        «search» при возврате к новому поиску, «exit» при
+        завершении приложения или None, если фильмы не найдены.
+
+    Raises:
+        mysql.connector.Error:
+            Если произошла ошибка обращения к MySQL.
+    """
+
     logger.info("Пользователь выбрал поиск по названию фильма")
 
     name = input_text("\nВведите название фильма: ")
     total = count_films_by_name(name)
 
     if total == 0:
-        print("По данному запросу фильмы не найдены.")
+        print("\nПо данному запросу фильмы не найдены.")
         return None
 
     title = (
@@ -277,80 +330,142 @@ def handle_name_search() -> str | None:
 
 
 def handle_genre_search() -> str | None:
-    """Выполняет поиск фильмов по жанру и диапазону годов."""
-    logger.info(
-        "Пользователь выбрал поиск по жанру и диапазону лет выпуска"
-    )
+    """
+       Управляет поиском фильмов по жанру и годам.
 
+       Список жанров загружается один раз при входе в обработчик.
+       Пользователь может изменять жанр и годы, не запрашивая
+       список жанров повторно.
+       """
+    logger.info("Пользователь выбрал поиск по жанру и годам")
+
+    # Единственный запрос списка жанров в рамках этого меню
     rows, headers = get_genres()
 
     print(Fore.YELLOW + "\n======== Список жанров =======")
-    print(tabulate(rows, headers=headers, tablefmt="psql"))
+    print(
+        tabulate(
+            rows,
+            headers=headers,
+            tablefmt="psql",
+        )
+    )
+
+    genre_id, genre = select_genre(rows)
+    year_from, year_to = input_year_range()
 
     while True:
-        genre_id = input_number(
-            Fore.GREEN
-            + "Введите номер жанра: "
-            + Style.RESET_ALL
-            + Fore.WHITE
-        )
-        genre = next(
-            (
-                genre_name
-                for current_id, genre_name in rows
-                if current_id == genre_id
-            ),
-            None,
+        total = count_films_by_genre_and_years(
+            genre_id,
+            year_from,
+            year_to,
         )
 
-        if genre is not None:
-            break
+        if total == 0:
+            print(
+                Fore.RED
+                + "\nПо заданным параметрам фильмы не найдены."
+            )
+        else:
+            title = (
+                f"\n========= Фильмы из БД '{db_name}' "
+                f"по жанру и годам ========="
+            )
 
-        print(
-            Fore.RED
-            + "\n\tВыбранный жанр отсутствует в списке.\n"
-        )
+            if year_from == year_to:
+                history_query = (
+                    f"Genre: {genre}, year: {year_from}"
+                )
+            else:
+                history_query = (
+                    f"Genre: {genre}, "
+                    f"years: {year_from}-{year_to}"
+                )
 
-    year_from, year_to = input_year_range()
-    total = count_films_by_genre_and_years(
-        genre_id,
-        year_from,
-        year_to,
-    )
+            save_query_safely(
+                "by_genre_years",
+                history_query,
+            )
 
-    if total == 0:
-        print("По данному запросу фильмы не найдены.")
-        return None
+            result = show_paginated_results(
+                get_films_by_genre_and_years,
+                (genre_id, year_from, year_to),
+                (total, title, genre),
+            )
 
-    title = (
-        f"\n========= Вывод фильмов по жанрам и годам "
-        f"из БД '{db_name}' ========="
-    )
+            if result == "exit":
+                return "exit"
 
-    if year_from == year_to:
-        history_query = f"Genre: {genre}, year: {year_from}"
-    else:
-        history_query = (
-            f"Genre: {genre}, years: {year_from}-{year_to}"
-        )
+            if result == "menu":
+                return None
 
-    save_query_safely("by_genre_years", history_query)
+        while True:
+            command = input_command(
+                Fore.GREEN
+                + "\n[y] — изменить годы, "
+                  "[g] — изменить жанр, "
+                  "[a] — изменить жанр и годы, "
+                  "[m] — главное меню, "
+                  "[q] — выход: "
+                + Style.RESET_ALL
+                + Fore.WHITE
+            )
 
-    return show_paginated_results(
-        get_films_by_genre_and_years,
-        (genre_id, year_from, year_to),
-        (total, title, genre),
-    )
+            if command == "y":
+                year_from, year_to = input_year_range()
+                break
+
+            if command == "g":
+                print(
+                    tabulate(
+                        rows,
+                        headers=headers,
+                        tablefmt="psql",
+                    )
+                )
+
+                genre_id, genre = select_genre(rows)
+                break
+
+            if command == "a":
+                print(
+                    tabulate(
+                        rows,
+                        headers=headers,
+                        tablefmt="psql",
+                    )
+                )
+
+                genre_id, genre = select_genre(rows)
+                year_from, year_to = input_year_range()
+                break
+
+            if command == "m":
+                return None
+
+            print(
+                Fore.RED
+                + "\nНеизвестная команда."
+            )
 
 
 def get_user_input() -> None:
-    """Показывает главное меню и запускает выбранное действие."""
+    """
+        Запускает главное меню консольного приложения.
+
+        Показывает доступные действия, получает команду пользователя
+        и запускает соответствующий обработчик поиска или просмотра
+        истории. Обрабатывает ошибки MySQL и MongoDB, показывая
+        пользователю понятное сообщение.
+
+        Raises:
+            SystemExit:
+                Если пользователь ввёл команду «q».
+        """
+
     logger.info("Запущен модуль пользовательского ввода")
 
-    print(
-        Fore.YELLOW
-        + f"\n=== Application {db_name.upper()} Film Query ==="
-    )
+    print(Fore.YELLOW + f"\n=== Application {db_name.upper()} Film Query ===")
     print(Fore.YELLOW + "___ Find movies for every taste ___")
 
     actions: dict[str, Callable[[], str | None]] = {
@@ -413,45 +528,67 @@ q - 🚪   Exit """
             )
 
 
-# Выводим 5 самых часто посылаемых запросов и информацию об их количестве
 def output_top_queries() -> None:
+    """
+        Выводит наиболее популярные поисковые запросы.
+
+        Получает из MongoDB пять самых часто выполнявшихся запросов
+        и показывает их вид, содержимое и количество выполнений.
+
+        Raises:
+            PyMongoError:
+                Если не удалось получить историю из MongoDB.
+        """
+
     queries = get_top_queries()
 
     print(Fore.YELLOW + "========== Top queries ==========" + Style.RESET_ALL + Fore.WHITE)
+    try:
+        for i, q in enumerate(queries, start=1):
 
-    for i, q in enumerate(queries, start=1):
+            if q["_id"]["search_type"] == "by_name":
+                print(f"{i}. Search keyword: {q["_id"]["query"]}")
+            else:
+                print(f"{i}. {q["_id"]["query"]}")
+            print(f"   Number of requests: {q["count"]}\n")
+    except (KeyError, TypeError):
+        logger.exception("Некорректный формат документов истории MongoDB")
+        print(
+            Fore.RED
+            + "История поиска содержит некорректные данные."
+        )
 
-        if q["_id"]["search_type"] == "by_name":
-            print(f"{i}. Search keyword: {q["_id"]["query"]}")
-        else:
-            print(f"{i}. {q["_id"]["query"]}")
-        print(f"   Number of requests: {q["count"]}\n")
 
-
-# Выводим 5 самых последних запросов
 def output_last_queries() -> None:
+    """
+    Выводит последние поисковые запросы пользователя.
+
+    Получает из MongoDB пять последних записей истории и
+    показывает содержимое каждого запроса и дату его выполнения.
+
+    Raises:
+        PyMongoError:
+            Если не удалось получить историю из MongoDB.
+    """
+
     queries = get_last_queries()
 
     print(Fore.YELLOW + "========== Recent queries ==========" + Style.RESET_ALL + Fore.WHITE)
+    try:
+        for i, q in enumerate(queries, start=1):
 
-    for i, q in enumerate(queries, start=1):
+            if q["search_type"] == "by_name":
+                print(f"{i}. Search keyword: {q["query"]}")
+            else:
+                print(f"{i}. {q["query"]}")
+            print(f"   Request date: {q["created_at"].strftime("%Y-%m-%d %H:%M:%S")}\n")
+    except (KeyError, TypeError, AttributeError):
+        logger.exception(
+            "Некорректный формат документов истории MongoDB"
+        )
+        print(
+            Fore.RED
+            + "История поиска содержит некорректные данные."
+        )
 
-        if q["search_type"] == "by_name":
-            print(f"{i}. Search keyword: {q["query"]}")
-        else:
-            print(f"{i}. {q["query"]}")
-        print(f"   Request date: {q["created_at"].strftime("%Y-%m-%d %H:%M:%S")}\n")
 
-
-"""Реализовано:
-input_command() — команды приводятся к нижнему регистру, q завершает приложение;
-input_text() — обычный текст сохраняет регистр и не воспринимает q как выход;
-input_number() теперь корректно объявлен как возвращающий int;
-input_year_range() проверяет оба года без их скрытой подмены;
-handle_name_search() содержит поиск по названию;
-handle_genre_search() содержит поиск по жанру и годам;
-get_user_input() теперь представляет собой компактное главное меню;
-save_query_safely() перехватывает PyMongoError, поэтому ошибка сохранения истории
-                    не мешает показать найденные фильмы;
-ошибки чтения истории MongoDB обрабатываются отдельно;
-удалены все обращения к старой input_with_exit()."""

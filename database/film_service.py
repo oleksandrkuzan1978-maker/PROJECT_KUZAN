@@ -44,6 +44,7 @@ QueryResult: TypeAlias = tuple[
 
 # Приватная ф-ция осуществляет соединение
 def _execute(query: str, *params: Any):
+    """Выполняет SELECT-запрос и возвращает строки с заголовками."""
 
     with get_connection() as connection:
         with connection.cursor() as  cursor:

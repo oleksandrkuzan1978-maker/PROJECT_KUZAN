@@ -55,13 +55,12 @@ def setup_logging() -> None:
 
     # Оформляем запись Пути к лог-файлам так, чтобы эти пути читались в любой системе
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # __file__ пайтон подставляет имя logger_config.py
-    #log_file = os.path.join(base_dir, "logs", "errors.log")
-    ###
-    # Создаю два пути к лог-файлам
-    #log_dir = os.path.join(base_dir, "logs")
 
-    info_log = os.path.join(base_dir, "logs", "info.log")
-    error_log =  os.path.join(base_dir, "logs", "errors.log")
+    log_dir = os.path.join(base_dir, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+
+    info_log = os.path.join(log_dir, "info.log")
+    error_log = os.path.join(log_dir, "errors.log")
 
     # Создаю обработчик лог-сообщений для записи в лог-файл
     info_handler = logging.FileHandler(
