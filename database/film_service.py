@@ -28,6 +28,7 @@ QueryResult: TypeAlias = tuple[
 
 
 # Приватная ф-ция осуществляет соединение
+@funclog
 def _execute(query: str, *params: Any):
     """Выполняет SELECT-запрос и возвращает строки с заголовками."""
 
@@ -39,7 +40,7 @@ def _execute(query: str, *params: Any):
                                 query,
                                 *params)
 
-
+@funclog
 def _get_count(
     query: str,
     *params: Any,
@@ -49,20 +50,20 @@ def _get_count(
     rows, _ = _execute(query, *params)
     return rows[0][0]
 
-
+@funclog
 def get_genres() -> QueryResult:
     """Возвращает список жанров."""
 
     return _execute(GET_GENRES)
 
-
+@funclog
 def count_films_by_name(name: str) -> int:
     """Возвращает количество фильмов, найденных по названию."""
 
     name_pattern = f"%{name}%"
     return _get_count(NAME_TOTAL, name_pattern)
 
-
+@funclog
 def get_films_by_name(
     name: str,
     limit: int,
@@ -79,8 +80,8 @@ def get_films_by_name(
         offset,
     )
 
-
-def count_films_by_genre_and_years(
+@funclog
+def count_films_by_genre(
     genre_id: int,
     year_from: int,
     year_to: int,
@@ -94,8 +95,8 @@ def count_films_by_genre_and_years(
         year_to,
     )
 
-
-def get_films_by_genre_and_years(
+@funclog
+def get_films_by_genre(
     genre_id: int,
     year_from: int,
     year_to: int,

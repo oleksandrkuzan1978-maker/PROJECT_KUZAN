@@ -40,13 +40,21 @@ def execute_query(cursor: MySQLCursorAbstract, query: str, *params:Any,) -> tupl
                 Если выполнить запрос или получить результат не удалось.
         """
 
-    logger.debug("Выполняется SQL-запрос к БД ...")
+    logger.debug("Выполняется SQL-запрос: operation=%s, params_count=%d",
+        query.lstrip().split(maxsplit=1)[0].upper(),
+        len(params),)
+
     cursor.execute(query, params) # Выполняется SQL-запрос. Результат хранится внутри курсора
 
     rows = cursor.fetchall() # Методом курсора достаем сразу весь результат запроса из курсора.
                              # Cписок кортежей. Каждый кортеж - это одна строка таблицы
     headers = [col[0] for col in cursor.description or ()] # второй эл-нт - это шапка таблицы рез-тов
 
+    logger.debug(
+        "SQL-запрос выполнен: rows=%d, columns=%d",
+        len(rows),
+        len(headers),
+    )
     return rows, headers
 
 

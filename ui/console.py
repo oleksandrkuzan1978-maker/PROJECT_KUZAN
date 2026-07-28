@@ -19,9 +19,9 @@ from config.local_settings import dbconfig
 from utils.logger_config import funclog
 from database.mongo_history_write import (save_query, get_top_queries, get_last_queries)
 from database.film_service import (
-    count_films_by_genre_and_years,
+    count_films_by_genre,
     count_films_by_name,
-    get_films_by_genre_and_years,
+    get_films_by_genre,
     get_films_by_name,
     get_genres,
 )
@@ -50,7 +50,7 @@ def input_command(prompt: str) -> str:
     value = input(prompt).strip().lower()
 
     if value == "q":
-        print(Fore.CYAN + "\nВыход из программы.")
+        print(Fore.CYAN + "\nExit the program.")
         raise SystemExit()
 
     return value
@@ -64,7 +64,7 @@ def input_text(prompt: str) -> str:
         if value:
             return value
 
-        print(Fore.RED + "\nЗначение не должно быть пустым.")
+        print(Fore.RED + "\nThe value must not be empty.")
 
 
 def input_number(message: str) -> int:
@@ -75,14 +75,14 @@ def input_number(message: str) -> int:
         if value.isdigit():
             return int(value)
 
-        print(Fore.RED + "\nВведите число.")
+        print(Fore.RED + "\nEnter a number.")
 
 
 def input_year_range() -> tuple[int, int] | None:
     """Запрашивает и проверяет диапазон годов."""
     while True:
-        year_from = input_number("\nВведите начальный год диапазона (4 цифры): ")
-        year_to = input_number("Введите конечный год диапазона (4 цифры): ")
+        year_from = input_number("\nEnter the start year of the range (4 digits): ")
+        year_to = input_number("Enter the end year of the range (4 digits): ")
 
         if year_from < MIN_YEAR:
             year_from = MIN_YEAR
@@ -93,7 +93,7 @@ def input_year_range() -> tuple[int, int] | None:
             return year_from, year_to
 
         else:
-            print(Fore.RED + "\n\tНекорректный ввод года")
+            print(Fore.RED + "\n\tInvalid year input")
             continue
 
 
@@ -138,16 +138,16 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
         print(
             "\nНажмите "
             + Fore.YELLOW + "[n]"
-            + Style.RESET_ALL + Fore.WHITE + " — далее, "
+            + Style.RESET_ALL + Fore.WHITE + " — next, "
             + Fore.YELLOW + "[p]"
-            + Style.RESET_ALL + Fore.WHITE + " — назад, "
+            + Style.RESET_ALL + Fore.WHITE + " — back, "
             + Fore.YELLOW + "[f]"
-            + Style.RESET_ALL + Fore.WHITE + " — изменить поиск, "
+            + Style.RESET_ALL + Fore.WHITE + " — change search, "
             + Fore.YELLOW + "[m]"
-            + Style.RESET_ALL + Fore.WHITE + " — главное меню, "
+            + Style.RESET_ALL + Fore.WHITE + " — main menu, "
             + Fore.YELLOW + "[q]"
             + Style.RESET_ALL + Fore.WHITE
-            + " — выход или введите номер страницы: ",
+            + " — Exit or enter page number: ",
             end="",
         )
 
@@ -174,10 +174,10 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
             if 1 <= page <= pages:
                 return "goto", page
 
-            print(Fore.RED + f"\n\tСтраница {page} отсутствует.")
+            print(Fore.RED + f"\n\tPage {page} not found.")
             continue
 
-        print(Fore.RED + "\n\tВвод некорректного значения.")
+        print(Fore.RED + "\n\tInvalid value entered.")
 
 
 @funclog
@@ -226,11 +226,26 @@ def show_paginated_results(fetch_function: Callable
         print(tabulate(rows, headers=headers, tablefmt="psql"))
         print()
         if genre is not None:
-            print(Fore.CYAN + "Жанр:" + Style.RESET_ALL + Fore.WHITE, genre)
-        print(f"\nНайдено: {total} фильма(ов)")
-        print(f"Страница {page} из {pages}")
+            print(Fore.CYAN + "Genre:" + Style.RESET_ALL + Fore.WHITE, genre)
+        print(f"\nMovie(s) found: {total} ")
+        print(f"Page {page} of {pages}")
+
+        logger.debug(
+            "Показана страница результатов: "
+            "page=%d, pages=%d, rows=%d, offset=%d",
+            page,
+            pages,
+            len(rows),
+            offset,
+        )
 
         action, value = get_navigation(pages)
+
+        logger.debug(
+            "Получена команда навигации: action=%s, value=%s",
+            action,
+            value,
+        )
 
         if action == "next":
             page = page + 1 if page < pages else 1
@@ -250,7 +265,7 @@ def show_paginated_results(fetch_function: Callable
         elif action == "exit":
             print(
                 Fore.CYAN
-                + "\nСпасибо за использование программы!\n"
+                + "\nThank you for using the program!\n"
             )
             return "exit"
 
@@ -263,7 +278,7 @@ def save_query_safely(search_type: str, query: str) -> None:
         logger.exception("Не удалось сохранить историю поиска в MongoDB")
         print(
             Fore.YELLOW
-            + "Предупреждение: историю поиска сохранить не удалось."
+            + "Warning: Could not save search history."
         )
 
 
@@ -278,7 +293,7 @@ def select_genre(rows: list[tuple],) -> tuple[int, str]:
     while True:
         genre_id = input_number(
             Fore.GREEN
-            + "\nВведите номер жанра: "
+            + "\nEnter the genre number: "
             + Style.RESET_ALL
             + Fore.WHITE
         )
@@ -291,7 +306,7 @@ def select_genre(rows: list[tuple],) -> tuple[int, str]:
 
         print(
             Fore.RED
-            + "\nВыбранный жанр отсутствует в списке.\n"
+            + "\nThe selected genre is not in the list.\n"
         )
 
 
@@ -313,15 +328,20 @@ def handle_name_search() -> str | None:
 
     logger.info("Пользователь выбрал поиск по названию фильма")
 
-    name = input_text("\nВведите название фильма: ")
+    name = input_text("\nEnter the movie title: ")
     total = count_films_by_name(name)
 
+    logger.info(
+        "Поиск по названию выполнен: total=%d",
+        total,
+    )
+
     if total == 0:
-        print("\nПо данному запросу фильмы не найдены.")
+        print("\nNo films were found for this query.")
         return None
 
     title = (
-        f"\n========= Вывод фильмов из БД '{db_name}' по названию =========="
+        f"\n========= Displaying movies from DB '{db_name}' by name =========="
     )
 
     save_query_safely("by_name", name)
@@ -346,7 +366,7 @@ def handle_genre_search() -> str | None:
     # Единственный запрос списка жанров в рамках этого меню
     rows, headers = get_genres()
 
-    print(Fore.YELLOW + "\n======== Список жанров =======")
+    print(Fore.YELLOW + "\n======== List of genres =======")
     print(
         tabulate(
             rows,
@@ -359,21 +379,30 @@ def handle_genre_search() -> str | None:
     year_from, year_to = input_year_range()
 
     while True:
-        total = count_films_by_genre_and_years(
+        total = count_films_by_genre(
             genre_id,
             year_from,
             year_to,
         )
 
+        logger.info(
+            "Поиск по жанру и годам выполнен: "
+            "genre_id=%d, years=%d-%d, total=%d",
+            genre_id,
+            year_from,
+            year_to,
+            total,
+        )
+
         if total == 0:
             print(
                 Fore.RED
-                + "\nПо заданным параметрам фильмы не найдены."
+                + "\nNo films were found matching the specified parameters."
             )
         else:
             title = (
-                f"\n========= Фильмы из БД '{db_name}' "
-                f"по жанру и годам ========="
+                f"\n========= Movies from DB '{db_name}' "
+                f"by genre and year ========="
             )
 
             if year_from == year_to:
@@ -392,7 +421,7 @@ def handle_genre_search() -> str | None:
             )
 
             result = show_paginated_results(
-                get_films_by_genre_and_years,
+                get_films_by_genre,
                 (genre_id, year_from, year_to),
                 (total, title, genre),
             )
@@ -406,11 +435,11 @@ def handle_genre_search() -> str | None:
         while True:
             command = input_command(
                 Fore.GREEN
-                + "\n[y] — изменить годы, "
-                  "[g] — изменить жанр, "
-                  "[a] — изменить жанр и годы, "
-                  "[m] — главное меню, "
-                  "[q] — выход: "
+                + "\n[y] — change the years, "
+                  "[g] — change genre, "
+                  "[a] — change genre and years, "
+                  "[m] — main menu, "
+                  "[q] — exit: "
                 + Style.RESET_ALL
                 + Fore.WHITE
             )
@@ -449,7 +478,7 @@ def handle_genre_search() -> str | None:
 
             print(
                 Fore.RED
-                + "\nНеизвестная команда."
+                + "\nUnknown command."
             )
 
 
@@ -502,7 +531,7 @@ q - 🚪   Exit """
         if action is None:
             print(
                 Fore.RED
-                + "\nВы ввели некорректный символ для выбора.\n"
+                + "\nYou entered an invalid character for the selection.\n"
             )
             continue
 
@@ -514,24 +543,24 @@ q - 🚪   Exit """
 
         except mysql.connector.ProgrammingError:
             logger.exception("Ошибка в SQL-запросе приложения")
-            print(Fore.RED + "Внутренняя ошибка приложения.")
+            print(Fore.RED + "Internal application error.")
             return
 
         except mysql.connector.Error:
             logger.exception("Ошибка БД в консольном интерфейсе")
             print(
                 Fore.RED
-                + "Ошибка при обращении к базе данных. Попробуйте позже."
+                + "Error accessing the database. Please try again later."
             )
 
         except PyMongoError:
             logger.exception("Ошибка чтения MongoDB")
             print(
                 Fore.RED
-                + "Не удалось получить историю поиска из MongoDB."
+                + "Failed to retrieve search history from MongoDB."
             )
 
-
+@funclog
 def output_top_queries() -> None:
     """
         Выводит наиболее популярные поисковые запросы.
@@ -559,10 +588,10 @@ def output_top_queries() -> None:
         logger.exception("Некорректный формат документов истории MongoDB")
         print(
             Fore.RED
-            + "История поиска содержит некорректные данные."
+            + "The search history contains incorrect data."
         )
 
-
+@funclog
 def output_last_queries() -> None:
     """
     Выводит последние поисковые запросы пользователя.
@@ -592,7 +621,7 @@ def output_last_queries() -> None:
         )
         print(
             Fore.RED
-            + "История поиска содержит некорректные данные."
+            + "The search history contains incorrect data."
         )
 
 

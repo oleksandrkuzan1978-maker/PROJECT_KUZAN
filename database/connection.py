@@ -25,5 +25,5 @@ def get_connection() -> MySQLConnectionAbstract: # None | PooledMySQLConnection 
 
     conn = mysql.connector.connect(
         **dbconfig)  # функция из библиотеки mysql.connector устанавливает соединение с сервером MySQL.
-    logger.info("Успешное подключение к БД '%s'", dbconfig.get("database"))
+    logger.debug("Успешное подключение к БД '%s'", dbconfig.get("database"))
     return conn  # это объект соединения (MySQLConnection)

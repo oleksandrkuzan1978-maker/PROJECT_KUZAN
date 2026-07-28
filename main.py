@@ -27,19 +27,19 @@ def main() -> None:
 
     except mysql.connector.Error:
         logger.error("Приложение завершено из-за ошибки работы с БД")
-        print("Ошибка при работе с базой данных.")
+        print("Database error.")
         sys.exit(1)
 
     except (KeyboardInterrupt, EOFError):
         logger.info("Приложение завершено пользователем")
-        print("\nРабота приложения завершена.")
+        print("\nThe application has finished running.")
 
     except Exception:
         logger.critical(
             "Необработанное исключение достигло main().",
             exc_info=True
         )
-        print("Произошла критическая ошибка.")
+        print("A critical error has occurred.")
         sys.exit(1)
     else:
         logger.info("Завершение приложения")
