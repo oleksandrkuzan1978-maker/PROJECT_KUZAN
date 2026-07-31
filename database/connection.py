@@ -12,8 +12,8 @@ from config.local_settings import dbconfig  # импорт словаря с н�
 from mysql.connector.connection import MySQLConnectionAbstract
 import logging
 from utils.logger_config import funclog
-# from mysql.connector.errors import InterfaceError, OperationalError
-# from utils.exceptions import ServiceUnavailableError
+from mysql.connector.errors import InterfaceError, OperationalError
+from utils.exceptions import ServiceUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +29,17 @@ def get_connection() -> MySQLConnectionAbstract: # None | PooledMySQLConnection 
     logger.debug("Попытка подключения к БД '%s'.\n"
                  "Используются параметры подключения из local_settings.py."
                  , dbconfig.get("database"))
+    try:
 
-    conn = mysql.connector.connect(
-        **dbconfig) # функция из библиотеки mysql.connector устанавливает соединение с сервером MySQL.
+        conn = mysql.connector.connect(
+            **dbconfig) # функция из библиотеки mysql.connector устанавливает соединение с сервером MySQL.
+
+    except (InterfaceError, OperationalError) as error:
+        logger.debug(
+            "Не удалось подключиться к MySQL: %s",
+            error,
+        )
+        raise ServiceUnavailableError("MySQL") from error
 
     logger.debug("Успешное подключение к БД '%s'", dbconfig.get("database"))
     return conn  # это объект соединения (MySQLConnection)

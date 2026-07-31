@@ -18,6 +18,7 @@ from ui.pagination import show_paginated_results, clear_screen
 from ui.input_helpers import input_command, input_text, select_genre, input_year_range
 from ui.history_view import output_top_queries, output_last_queries
 from database.mongo_history_write import save_query
+from utils.exceptions import ServiceUnavailableError
 
 from database.film_service import (
     count_films_by_genre,
@@ -102,6 +103,17 @@ q - 🚪   Exit """
             if result == "exit":
                 return
 
+        except ServiceUnavailableError as error:
+            logger.exception(
+                "Внешний сервис недоступен: %s",
+                error.service,
+            )
+            print(
+                Fore.RED
+                + f"{error.service} is unavailable. Check the connection "
+                  "and try again."
+            )
+
         except mysql.connector.ProgrammingError:
             logger.exception("Ошибка в SQL-запросе приложения")
             print(Fore.RED + "Internal application error.")
@@ -126,7 +138,17 @@ q - 🚪   Exit """
 def save_query_safely(search_type: str, query: str) -> None:
     """Сохраняет историю, не прерывая основной поиск при ошибке MongoDB."""
     try:
+
         save_query(search_type, query=query)
+
+    except ServiceUnavailableError:
+        logger.exception("MongoDB недоступна: история не сохранена")
+        print(
+            Fore.YELLOW
+            + "Warning: MongoDB is unavailable. "
+              "Search history was not saved."
+        )
+
     except PyMongoError:
         logger.exception("Не удалось сохранить историю поиска в MongoDB")
         print(

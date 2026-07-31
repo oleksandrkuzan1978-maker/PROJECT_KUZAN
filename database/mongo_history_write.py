@@ -8,12 +8,12 @@
 
 # from pprint import pprint
 from datetime import datetime
-from typing import Any
-
-# from collections import Counter
-# from pathlib import Path
 from pymongo import MongoClient  # pip install pymongo
-from pymongo.errors import PyMongoError
+from pymongo.errors import (
+    ConnectionFailure,
+    ServerSelectionTimeoutError,
+)
+from utils.exceptions import ServiceUnavailableError
 from functools import wraps
 from config.local_settings import (MONGODB_URL_ATLAS, MONGODB_URL_WRITE, MONGODB_URL_READ)
 import logging
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 DB_NAME = "ich_edit"
 COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
+
 
 # Ф-ция сохранения результата запроса в базе данных MongoDB
 def save_query(search_type: str, query: str) -> None:
@@ -49,16 +50,19 @@ def save_query(search_type: str, query: str) -> None:
     }
     if search_type == "by_name":
         document["query"] = document["query"].replace("%", "")  # Заменяем в названии фильма % на ""
+    try:
+        with MongoClient(MONGODB_URL_ATLAS) as client:
 
-    with MongoClient(MONGODB_URL_ATLAS) as client:
+            collection = client[DB_NAME][COLLECTION_NAME]
 
-        collection = client[DB_NAME][COLLECTION_NAME]
+            collection.insert_one(document)
 
-        collection.insert_one(document)
+            # Если сильно хочется посмотреть, что и как записалось в коллекцию
+            # for doc in collection.find():
+            #     print(doc)
 
-        # Если сильно хочется посмотреть, что и как записалось в коллекцию
-        # for doc in collection.find():
-        #     print(doc)
+    except (ConnectionFailure, ServerSelectionTimeoutError) as error:
+        raise ServiceUnavailableError("MongoDB") from error
 
     logger.info("Поисковый запрос сохранён в MongoDB")
 
@@ -89,9 +93,14 @@ def mongo_reader(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
 
-        with MongoClient(MONGODB_URL_ATLAS) as client:
-            collection = client[DB_NAME][COLLECTION_NAME]
-            return func(collection, *args, **kwargs)
+        try:
+
+            with MongoClient(MONGODB_URL_ATLAS) as client:
+                collection = client[DB_NAME][COLLECTION_NAME]
+                return func(collection, *args, **kwargs)
+
+        except (ConnectionFailure, ServerSelectionTimeoutError) as error:
+            raise ServiceUnavailableError("MongoDB") from error
 
     return wrapper
 
