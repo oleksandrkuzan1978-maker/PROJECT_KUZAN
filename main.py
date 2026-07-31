@@ -26,7 +26,7 @@ def main() -> None:
         logger.info("=== Все запросы выполнены успешно ===")
 
     except mysql.connector.Error:
-        logger.error("Приложение завершено из-за ошибки работы с БД")
+        logger.exception("Приложение завершено из-за ошибки работы с БД")
         print("Database error.")
         sys.exit(1)
 

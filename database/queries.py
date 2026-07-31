@@ -8,8 +8,6 @@ SQL-запросы приложения поиска фильмов.
 """
 
 # database/queries.py
-# import logging
-# logger = logging.getLogger(__name__)
 
 # ЗАПРОС из БД по общему количеству совпадений по имени
 NAME_TOTAL = """

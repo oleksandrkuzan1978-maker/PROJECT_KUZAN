@@ -15,7 +15,7 @@ from typing import Any
 from pymongo import MongoClient  # pip install pymongo
 from pymongo.errors import PyMongoError
 from functools import wraps
-from config.local_settings import (MONGODB_URL_WRITE, MONGODB_URL_READ)
+from config.local_settings import (MONGODB_URL_ATLAS, MONGODB_URL_WRITE, MONGODB_URL_READ)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ def save_query(search_type: str, query: str) -> None:
     if search_type == "by_name":
         document["query"] = document["query"].replace("%", "")  # Заменяем в названии фильма % на ""
 
-    with MongoClient(MONGODB_URL_WRITE) as client:
+    with MongoClient(MONGODB_URL_ATLAS) as client:
 
         collection = client[DB_NAME][COLLECTION_NAME]
 
@@ -89,7 +89,7 @@ def mongo_reader(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
 
-        with MongoClient(MONGODB_URL_READ) as client:
+        with MongoClient(MONGODB_URL_ATLAS) as client:
             collection = client[DB_NAME][COLLECTION_NAME]
             return func(collection, *args, **kwargs)
 
