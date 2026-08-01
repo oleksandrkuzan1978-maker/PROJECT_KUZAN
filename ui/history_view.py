@@ -5,11 +5,11 @@
 структуры документов регистрируются в журнале и преобразуются
 в понятные сообщения интерфейса.
 """
-
+import logging
 from colorama import Fore, Style
+
 from utils.logger_config import funclog
 from database.mongo_history_write import (get_top_queries, get_last_queries)
-import logging
 
 logger = logging.getLogger(__name__)
 

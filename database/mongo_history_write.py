@@ -26,6 +26,7 @@ DB_NAME = "ich_edit"
 COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
 MONGODB_URL = MONGODB_URL_WRITE
 
+
 # Ф-ция сохранения результата запроса в базе данных MongoDB
 def save_query(search_type: str, query: str) -> None:
     """
@@ -66,7 +67,9 @@ def save_query(search_type: str, query: str) -> None:
 
     logger.info("Поисковый запрос сохранён в MongoDB")
 
+
 """************************ Возвращаем запросы ***************************"""
+
 
 # Декоратор подключения к МонгоДБ и исключения ошибок
 def mongo_reader(func):
@@ -90,6 +93,7 @@ def mongo_reader(func):
         PyMongoError:
             Если операция с MongoDB завершилась ошибкой.
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
 
@@ -103,6 +107,7 @@ def mongo_reader(func):
             raise ServiceUnavailableError("MongoDB") from error
 
     return wrapper
+
 
 # вернуть 5 самых популярных запросов.
 @mongo_reader
@@ -157,4 +162,3 @@ def get_last_queries(collection, limit: int = 5):
 
     return list(collection.find({},
                                 {"_id": 0}).sort("created_at", -1).limit(limit))
-

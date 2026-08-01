@@ -1,21 +1,31 @@
-"""Постраничный вывод результатов поиска в консоли.
+"""Постраничное отображение результатов поиска в консоли.
 
-Модуль получает отдельные страницы результатов через переданную
-функцию выборки, кеширует уже просмотренные страницы и отображает
-их в виде таблицы. Также он обрабатывает команды перехода между
-страницами, возврата к поиску или главному меню и выхода из приложения.
+Модуль получает страницы результатов через переданную функцию
+выборки, кеширует уже просмотренные страницы и выводит данные
+в виде таблицы. Также обрабатывает переходы между страницами,
+возврат к поиску или главному меню и завершение приложения.
 """
 
-from collections.abc import Callable
-from utils.logger_config import funclog
-from colorama import Fore, Style
-from typing import Any
-from tabulate import tabulate
 import logging
+from typing import Any, TypeAlias
+from collections.abc import Callable
+
+from colorama import Fore, Style
+from tabulate import tabulate
+
+from utils.logger_config import funclog
+
+QueryResult: TypeAlias = tuple[
+    list[tuple[Any, ...]],
+    list[str],
+]
+
+PageFetcher: TypeAlias = Callable[..., QueryResult]
 
 logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 10
+
 
 def clear_screen() -> None:
     """Очищает экран терминала."""
@@ -68,7 +78,7 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
         command = input().strip().lower()
 
         clear_screen()
-        
+
         if command == "n":
             return "next", None
 
@@ -97,39 +107,50 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
 
 
 @funclog
-def show_paginated_results(fetch_function: Callable
-                           , fetch_args: tuple[str | int, ...]
-                           , info_args: tuple[int, str, Any]) -> str:
-    """
-     Выводит результаты поиска с постраничной навигацией.
+def show_paginated_results(
+        fetch_function: PageFetcher,
+        fetch_args: tuple[str | int, ...],
+        *,
+        total: int,
+        title: str,
+        genre: str | None = None,
+) -> str:
+    """Отображает результаты поиска с постраничной навигацией.
 
-     Для текущей страницы вычисляет смещение, передаёт функции
-     выборки постоянные аргументы, размер страницы и смещение,
-     после чего отображает полученные строки в виде таблицы.
+        Для каждой новой страницы вычисляет смещение и вызывает функцию
+        выборки с постоянными аргументами, размером страницы и смещением.
+        Полученный результат сохраняется в локальном кеше, поэтому при
+        повторном открытии просмотренной страницы запрос не выполняется.
 
-     Args:
-         fetch_function:
-             Функция получения одной страницы результатов.
-             После аргументов из fetch_args она должна принимать
-             параметры limit и offset.
+        Переход вперёд с последней страницы открывает первую, а переход
+        назад с первой страницы — последнюю.
 
-         fetch_args:
-             Постоянные аргументы функции выборки без параметров
-             limit и offset.
+        Args:
+            fetch_function:
+                Функция получения одной страницы результатов. После
+                аргументов из ``fetch_args`` должна принимать значения
+                ``limit`` и ``offset``.
+            fetch_args:
+                Постоянные позиционные аргументы функции выборки без
+                значений ``limit`` и ``offset``.
+            total:
+                Общее количество найденных фильмов.
+            title:
+                Заголовок, отображаемый перед таблицей результатов.
+            genre:
+                Название выбранного жанра. Для поиска по названию фильма
+                равно ``None``.
 
-         info_args:
-             Кортеж (total, title, genre), содержащий общее
-             количество найденных фильмов, заголовок результатов
-             и название жанра либо None.
+        Returns:
+            Строку, обозначающую выбранное пользователем действие:
 
-     Returns:
-         «search», если пользователь вернулся к новому поиску,
-         или «exit», если пользователь завершил приложение.
-     """
+            - ``"search"`` — изменить параметры поиска;
+            - ``"menu"`` — вернуться в главное меню;
+            - ``"exit"`` — завершить приложение.
+        """
 
-    page_cache = {} # Кеш для просмотренных страниц (для сокращения кол-ва SQL-запросов при пагинации)
+    page_cache = {}  # Кеш для просмотренных страниц (для сокращения кол-ва SQL-запросов при пагинации)
 
-    total, title, genre = info_args
     pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
     page = 1
 
@@ -140,9 +161,9 @@ def show_paginated_results(fetch_function: Callable
         print(Fore.YELLOW + title)
         offset = (page - 1) * PAGE_SIZE
 
-        if page not in page_cache: # Кеширование страниц с результатами
+        if page not in page_cache:  # Кеширование страниц с результатами
             page_cache[page] = fetch_function(*fetch_args, PAGE_SIZE, offset)
-        rows, headers = page_cache[page]  #fetch_function(*fetch_args, PAGE_SIZE, offset)
+        rows, headers = page_cache[page]
 
         print(tabulate(rows, headers=headers, tablefmt="psql"))
         print()

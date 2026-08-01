@@ -9,17 +9,15 @@
 модулям пакета :mod:`ui`.
 """
 
+import logging
 from collections.abc import Callable
-from tabulate import tabulate
-from colorama import Fore, init, Style
-from pymongo.errors import PyMongoError
-from config.local_settings import dbconfig
-from ui.pagination import show_paginated_results, clear_screen
-from ui.input_helpers import input_command, input_text, select_genre, input_year_range
-from ui.history_view import output_top_queries, output_last_queries
-from database.mongo_history_write import save_query
-from utils.exceptions import ServiceUnavailableError
 
+import mysql.connector
+from colorama import Fore, Style, init
+from pymongo.errors import PyMongoError
+from tabulate import tabulate
+
+from config.local_settings import dbconfig
 from database.film_service import (
     count_films_by_genre,
     count_films_by_name,
@@ -27,8 +25,16 @@ from database.film_service import (
     get_films_by_name,
     get_genres,
 )
-import mysql.connector
-import logging
+from database.mongo_history_write import save_query
+from ui.history_view import output_last_queries, output_top_queries
+from ui.input_helpers import (
+    input_command,
+    input_text,
+    input_year_range,
+    select_genre,
+)
+from ui.pagination import clear_screen, show_paginated_results
+from utils.exceptions import ServiceUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +140,6 @@ q - 🚪   Exit """
             )
 
 
-
 def save_query_safely(search_type: str, query: str) -> None:
     """Сохраняет историю, не прерывая основной поиск при ошибке MongoDB."""
     try:
@@ -158,20 +163,26 @@ def save_query_safely(search_type: str, query: str) -> None:
 
 
 def handle_name_search() -> str | None:
-    """Выполняет полный сценарий поиска фильмов по названию.
+    """Выполняет сценарий поиска фильмов по названию.
 
-    Запрашивает название, получает количество совпадений,
-    сохраняет запрос в истории и запускает постраничный вывод
-    найденных фильмов.
+        Запрашивает название фильма, получает количество совпадений,
+        сохраняет параметры успешного поиска в MongoDB и запускает
+        постраничное отображение найденных фильмов.
 
-    Returns:
-        «search» при возврате к новому поиску, «exit» при
-        завершении приложения или None, если фильмы не найдены.
+        Returns:
+            Результат постраничной навигации:
 
-    Raises:
-        mysql.connector.Error:
-            Если произошла ошибка обращения к MySQL.
-    """
+            - ``"search"`` — изменить поисковый запрос;
+            - ``"menu"`` — вернуться в главное меню;
+            - ``"exit"`` — завершить приложение;
+            - ``None`` — если фильмы не найдены.
+
+        Raises:
+            ServiceUnavailableError:
+                Если MySQL недоступен.
+            mysql.connector.Error:
+                Если при работе с MySQL произошла другая ошибка.
+        """
 
     logger.info("Пользователь выбрал поиск по названию фильма")
 
@@ -197,31 +208,82 @@ def handle_name_search() -> str | None:
     return show_paginated_results(
         get_films_by_name,
         (name,),
-        (total, title, None),
+        total=total,
+        title=title,
     )
 
 
-def handle_genre_search() -> str | None:
-    """
-       Управляет поиском фильмов по жанру и годам.
+def display_genres(
+        rows: list[tuple],
+        headers: list[str],
+) -> None:
+    """Выводит список доступных жанров в виде таблицы.
 
-       Список жанров загружается один раз при входе в обработчика.
-       Пользователь может изменять жанр и годы, не запрашивая
-       список жанров повторно.
-       """
+    Args:
+        rows:
+            Строки с идентификаторами и названиями жанров.
+        headers:
+            Названия столбцов таблицы.
+    """
+    print(Fore.YELLOW + "\n====== List of genres =====")
+    print(tabulate(rows, headers=headers, tablefmt="psql"))
+
+
+def format_genre_history_query(
+        genre: str,
+        year_from: int,
+        year_to: int,
+) -> str:
+    """Формирует описание поиска для сохранения в истории.
+
+        Если границы диапазона совпадают, формирует описание одного года.
+        В остальных случаях указывает начальный и конечный годы.
+
+        Args:
+            genre:
+                Название выбранного жанра.
+            year_from:
+                Начальный год диапазона.
+            year_to:
+                Конечный год диапазона.
+
+        Returns:
+            Текстовое описание жанра и выбранного периода.
+        """
+
+    if year_from == year_to:
+        return f"Genre: {genre}, year: {year_from}"
+
+    return f"Genre: {genre}, years: {year_from}-{year_to}"
+
+
+def handle_genre_search() -> str | None:
+    """Управляет поиском фильмов по жанру и диапазону лет.
+
+        При входе загружает список жанров из MySQL и повторно использует
+        его в течение всего сценария. Пользователь может изменять годы,
+        жанр либо оба параметра без повторного запроса списка жанров.
+
+        Для каждого набора параметров функция получает количество
+        совпадений, сохраняет успешный запрос в истории и запускает
+        постраничное отображение результатов.
+
+        Returns:
+            ``"exit"``, если пользователь завершил приложение, или
+            ``None`` при возврате в главное меню.
+
+        Raises:
+            ServiceUnavailableError:
+                Если MySQL недоступен.
+            mysql.connector.Error:
+                Если при работе с MySQL произошла другая ошибка.
+        """
     logger.info("Пользователь выбрал поиск по жанру и годам")
 
     # Единственный запрос списка жанров в рамках этого меню
     rows, headers = get_genres()
 
-    print(Fore.YELLOW + "\n======== List of genres =======")
-    print(
-        tabulate(
-            rows,
-            headers=headers,
-            tablefmt="psql",
-        )
-    )
+    display_genres(rows, headers)
 
     genre_id, genre = select_genre(rows)
     year_from, year_to = input_year_range()
@@ -253,15 +315,11 @@ def handle_genre_search() -> str | None:
                 f"by genre and year ========="
             )
 
-            if year_from == year_to:
-                history_query = (
-                    f"Genre: {genre}, year: {year_from}"
-                )
-            else:
-                history_query = (
-                    f"Genre: {genre}, "
-                    f"years: {year_from}-{year_to}"
-                )
+            history_query = format_genre_history_query(
+                genre,
+                year_from,
+                year_to,
+            )
 
             save_query_safely(
                 "by_genre_years",
@@ -271,7 +329,9 @@ def handle_genre_search() -> str | None:
             result = show_paginated_results(
                 get_films_by_genre,
                 (genre_id, year_from, year_to),
-                (total, title, genre),
+                total=total,
+                title=title,
+                genre=genre,
             )
 
             if result == "exit":
@@ -297,25 +357,13 @@ def handle_genre_search() -> str | None:
                 break
 
             if command == "g":
-                print(
-                    tabulate(
-                        rows,
-                        headers=headers,
-                        tablefmt="psql",
-                    )
-                )
+                display_genres(rows, headers)
 
                 genre_id, genre = select_genre(rows)
                 break
 
             if command == "a":
-                print(
-                    tabulate(
-                        rows,
-                        headers=headers,
-                        tablefmt="psql",
-                    )
-                )
+                display_genres(rows, headers)
 
                 genre_id, genre = select_genre(rows)
                 year_from, year_to = input_year_range()

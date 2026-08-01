@@ -10,6 +10,7 @@ from colorama import Fore, Style
 MIN_YEAR = 1901
 MAX_YEAR = 2155
 
+
 def input_command(prompt: str) -> str:
     """Запрашивает команду и обрабатывает команду выхода."""
 
@@ -63,8 +64,7 @@ def input_year_range() -> tuple[int, int] | None:
             continue
 
 
-
-def select_genre(rows: list[tuple],) -> tuple[int, str]:
+def select_genre(rows: list[tuple], ) -> tuple[int, str]:
     """
     Запрашивает жанр из ранее полученного списка.
 
@@ -81,7 +81,7 @@ def select_genre(rows: list[tuple],) -> tuple[int, str]:
         )
 
         genre_name = next((name for current_id, name in rows
-                           if current_id == genre_id), None,)
+                           if current_id == genre_id), None, )
 
         if genre_name is not None:
             return genre_id, genre_name
@@ -90,6 +90,3 @@ def select_genre(rows: list[tuple],) -> tuple[int, str]:
             Fore.RED
             + "\nThe selected genre is not in the list.\n"
         )
-
-
-

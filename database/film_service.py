@@ -41,7 +41,7 @@ def _execute(query: str, *params: Any) -> QueryResult:
                                 *params)
 
 
-def get_count(
+def _get_count(
     query: str,
     *params: Any,
 ) -> int:
@@ -61,7 +61,7 @@ def count_films_by_name(name: str) -> int:
     """Возвращает количество фильмов, найденных по названию."""
 
     name_pattern = f"%{name}%"
-    return get_count(NAME_TOTAL, name_pattern)
+    return _get_count(NAME_TOTAL, name_pattern)
 
 @funclog
 def get_films_by_name(
@@ -88,7 +88,7 @@ def count_films_by_genre(
 ) -> int:
     """Возвращает количество фильмов по жанру и годам."""
 
-    return get_count(
+    return _get_count(
         GENRES_TOTAL,
         genre_id,
         year_from,

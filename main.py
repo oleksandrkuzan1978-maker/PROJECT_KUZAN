@@ -4,19 +4,22 @@
 Модуль настраивает журналирование, запускает пользовательский
 интерфейс и выполняет финальную обработку необработанных ошибок.
 """
-
-# main.py
-from utils.logger_config import setup_logging
-setup_logging()
-from ui.console import get_user_input
-import mysql.connector
-from utils.exceptions import ServiceUnavailableError
-from config.local_settings import dbconfig
 import logging
 import sys
 
-logger = logging.getLogger(__name__) # Создаю логгер с именем "main".
-                                     # Метод getLogger возвращает объект логгера с именем этого модуля
+import mysql.connector
+
+from utils.logger_config import setup_logging
+
+setup_logging()
+from ui.console import get_user_input
+from utils.exceptions import ServiceUnavailableError
+from config.local_settings import dbconfig
+
+logger = logging.getLogger(__name__)  # Создаю логгер с именем "main".
+
+
+# Метод getLogger возвращает объект логгера с именем этого модуля
 def main() -> None:
     # Достаю из переменной (словаря) название БД
     db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
@@ -60,5 +63,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-

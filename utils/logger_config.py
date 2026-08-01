@@ -6,14 +6,12 @@
 декоратор для журналирования вызовов функций.
 """
 
-# utils/logger_config.py
 from colorlog import ColoredFormatter  # Для настройки цвета лог-сообщений в консоли
 from typing import Callable, Any
 from functools import wraps
 import logging
 import os
 import sys
-#import logging
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +42,8 @@ def setup_logging() -> None:
     """
 
     # Оформляем запись Пути к лог-файлам так, чтобы эти пути читались в любой системе
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # __file__ пайтон подставляет имя logger_config.py
+    base_dir = os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__)))  # __file__ пайтон подставляет имя logger_config.py
 
     log_dir = os.path.join(base_dir, "logs")
     os.makedirs(log_dir, exist_ok=True)
@@ -89,7 +88,7 @@ def setup_logging() -> None:
             "CRITICAL": "red"
         }
     )
-    #Назначаю уровни
+    # Назначаю уровни
     debug_handler.setLevel(logging.DEBUG)
     info_handler.setLevel(logging.INFO)
     error_handler.setLevel(logging.ERROR)
@@ -109,13 +108,14 @@ def setup_logging() -> None:
     # Создаю неявно логгер
     logging.basicConfig(
         level=logging.DEBUG,
-        handlers=[ # Все сообщения логирования отправлять одновременно в файл и на экран терминала
+        handlers=[  # Все сообщения логирования отправлять одновременно в файл и на экран терминала
             debug_handler,
             info_handler,
             error_handler
-            #, console_handler
+            # , console_handler
         ], force=True,
     )
+
 
 # Декоратор, который записывает в info.log
 # все вызовы функции с её аргументами и результатом.
@@ -133,6 +133,7 @@ def funclog(func: Callable) -> Callable:
        Returns:
            Функция-обёртка с сохранёнными метаданными исходной функции.
        """
+
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         logger.debug(
@@ -150,44 +151,3 @@ def funclog(func: Callable) -> Callable:
         return result
 
     return wrapper
-
-# def funclog(func: Callable) -> Callable:
-#     """
-#     Журналирует успешный вызов функции.
-#
-#     После выполнения записывает имя функции, переданные
-#     позиционные аргументы и возвращённый результат. Исключения
-#     не перехватывает и не логирует.
-#
-#     Args:
-#         func:
-#             Декорируемая функция.
-#
-#     Returns:
-#         Функцию-обёртку с журналированием успешного вызова.
-#     """
-#     logger = logging.getLogger(func.__module__)
-#
-#     @wraps(func)
-#     def wrapper(*args: Any) -> Any:
-#
-#         result = func(*args)
-#         msg = f"function {func.__name__}"
-#         args_string = ", ".join(str(arg) for arg in args) if args else None
-#         #kwargs_string = ", ".join(f'{k}="{v}"' for k,v in kwargs.items()) if kwargs else None
-#
-#         msg += f" | args: {args_string} | return: {result}" #kwargs: {kwargs_string}
-#
-#         logger.info(msg)
-#
-#         return result
-#
-#     return wrapper
-
-
-# В системе логирования Python есть четыре основных сущности:
-#
-# Logger — создаёт сообщения.
-# Handler — решает, куда их отправить.
-# Formatter — определяет внешний вид сообщения.
-# Filter — может отбрасывать часть сообщений.

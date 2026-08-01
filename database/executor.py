@@ -6,20 +6,21 @@
 строки вместе с названиями столбцов.
 """
 
-# database/executor.py
-# from config.local_settings import dbconfig
-# from tabulate import tabulate
-
 from typing import Any
 from mysql.connector.cursor import MySQLCursorAbstract
 from utils.logger_config import funclog
 import logging
 
-
 logger = logging.getLogger(__name__)  # Создаю логгер с именем "executor".
-                                      # Метод getLogger возвращает объект логгера с именем этого модуля.
+
+
+# Метод getLogger возвращает объект логгера с именем этого модуля.
 @funclog
-def execute_query(cursor: MySQLCursorAbstract, query: str, *params:Any,) -> tuple[list[tuple[Any, ...]], list[str]]:
+def execute_query(
+        cursor: MySQLCursorAbstract,
+        query: str,
+        *params: Any,
+) -> tuple[list[tuple[Any, ...]], list[str]]:
     """
         Выполняет параметризованный SELECT-запрос.
 
@@ -40,15 +41,16 @@ def execute_query(cursor: MySQLCursorAbstract, query: str, *params:Any,) -> tupl
                 Если выполнить запрос или получить результат не удалось.
         """
 
-    logger.debug("Выполняется SQL-запрос: operation=%s, params_count=%d",
+    logger.debug(
+        "Выполняется SQL-запрос: operation=%s, params_count=%d",
         query.lstrip().split(maxsplit=1)[0].upper(),
-        len(params),)
+        len(params), )
 
-    cursor.execute(query, params) # Выполняется SQL-запрос. Результат хранится внутри курсора
+    cursor.execute(query, params)  # Выполняется SQL-запрос. Результат хранится внутри курсора
 
-    rows = cursor.fetchall() # Методом курсора достаем сразу весь результат запроса из курсора.
-                             # Cписок кортежей. Каждый кортеж - это одна строка таблицы
-    headers = [col[0] for col in cursor.description or ()] # второй эл-нт - это шапка таблицы рез-тов
+    rows = cursor.fetchall()  # Методом курсора достаем сразу весь результат запроса из курсора.
+    # Cписок кортежей. Каждый кортеж - это одна строка таблицы
+    headers = [col[0] for col in cursor.description or ()]  # второй эл-нт - это шапка таблицы рез-тов
 
     logger.debug(
         "SQL-запрос выполнен: rows=%d, columns=%d",
@@ -56,5 +58,3 @@ def execute_query(cursor: MySQLCursorAbstract, query: str, *params:Any,) -> tupl
         len(headers),
     )
     return rows, headers
-
-
