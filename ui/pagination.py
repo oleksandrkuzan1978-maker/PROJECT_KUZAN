@@ -20,7 +20,7 @@ PAGE_SIZE = 10
 def clear_screen() -> None:
     """Очищает экран терминала."""
 
-    print("\033[2J\033[H", end="")
+    print("\033[2J\033[3J\033[H", end="", flush=True)
 
 
 @funclog

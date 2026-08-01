@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 DB_NAME = "ich_edit"
 COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
-
+MONGODB_URL = MONGODB_URL_WRITE
 
 # Ф-ция сохранения результата запроса в базе данных MongoDB
 def save_query(search_type: str, query: str) -> None:
@@ -51,7 +51,7 @@ def save_query(search_type: str, query: str) -> None:
     if search_type == "by_name":
         document["query"] = document["query"].replace("%", "")  # Заменяем в названии фильма % на ""
     try:
-        with MongoClient(MONGODB_URL_ATLAS) as client:
+        with MongoClient(MONGODB_URL) as client:
 
             collection = client[DB_NAME][COLLECTION_NAME]
 
@@ -95,7 +95,7 @@ def mongo_reader(func):
 
         try:
 
-            with MongoClient(MONGODB_URL_ATLAS) as client:
+            with MongoClient(MONGODB_URL) as client:
                 collection = client[DB_NAME][COLLECTION_NAME]
                 return func(collection, *args, **kwargs)
 

@@ -17,6 +17,20 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+
+# Универсальный класс фильтров обработчиков
+class ExactLevelFilter(logging.Filter):
+    """Пропускает записи только указанного уровня."""
+
+    def __init__(self, level: int) -> None:
+        super().__init__()
+        self.level = level
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Возвращает True, если уровень записи точно совпадает."""
+        return record.levelno == self.level
+
+
 def setup_logging() -> None:
     """
     Настраивает систему логирования приложения.
@@ -81,15 +95,9 @@ def setup_logging() -> None:
     error_handler.setLevel(logging.ERROR)
     console_handler.setLevel(logging.DEBUG)
 
-    # Создаем фильтр для info_handler чтобы в файл info.log попадали только сообщения уровня INFO
-    class InfoFilter(logging.Filter):
-        """Пропускает только сообщения уровня INFO."""
-        def filter(self, record) -> bool:
-            """Возвращает True только для записи уровня INFO."""
-            return record.levelno == logging.INFO
-
-    # Добавляем фильтр
-    info_handler.addFilter(InfoFilter())
+    # Добавление универсальных фильтров
+    debug_handler.addFilter(ExactLevelFilter(logging.DEBUG))
+    info_handler.addFilter(ExactLevelFilter(logging.INFO))
 
     # связываю обработчики с форматерами:
     # «Когда *_handler записывает сообщение в файл, оформляю его по шаблону file_formatter»
@@ -106,7 +114,7 @@ def setup_logging() -> None:
             info_handler,
             error_handler
             #, console_handler
-        ]
+        ], force=True,
     )
 
 # Декоратор, который записывает в info.log
