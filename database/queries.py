@@ -49,3 +49,8 @@ GET_GENRES = """
               SELECT category_id as number, name as name_genre
               FROM category
               ORDER BY category_id"""
+
+GET_RELEASE_YEAR_RANGE = """
+    SELECT MIN(release_year), MAX(release_year)
+    FROM film
+"""

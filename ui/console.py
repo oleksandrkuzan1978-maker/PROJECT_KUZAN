@@ -24,6 +24,7 @@ from database.film_service import (
     get_films_by_genre,
     get_films_by_name,
     get_genres,
+    get_release_year_range,
 )
 from database.mongo_history_write import save_query
 from ui.history_view import output_last_queries, output_top_queries
@@ -61,7 +62,7 @@ def get_user_input() -> None:
 
     logger.info("Запущен модуль пользовательского ввода")
 
-    print(Fore.YELLOW + f"\n=== Application {db_name.upper()} Film Query ===")
+    print(Fore.YELLOW + f"\n=== Application {db_name.upper()} Film Search ===")
     print(Fore.YELLOW + "___ Find movies for every taste ___")
 
     actions: dict[str, Callable[[], str | None]] = {
@@ -216,6 +217,8 @@ def handle_name_search() -> str | None:
 def display_genres(
         rows: list[tuple],
         headers: list[str],
+        min_year: int,
+        max_year: int,
 ) -> None:
     """Выводит список доступных жанров в виде таблицы.
 
@@ -224,9 +227,19 @@ def display_genres(
             Строки с идентификаторами и названиями жанров.
         headers:
             Названия столбцов таблицы.
+        min_year, max_year:
+            Граничные года диапазона поиска в базе данных.
     """
     print(Fore.YELLOW + "\n====== List of genres =====")
     print(tabulate(rows, headers=headers, tablefmt="psql"))
+
+    print(
+        "\nДоступный диапазон годов: "
+        + Fore.YELLOW
+        + f"{min_year}–{max_year}"
+        + Style.RESET_ALL
+        + Fore.WHITE
+    )
 
 
 def format_genre_history_query(
@@ -283,7 +296,14 @@ def handle_genre_search() -> str | None:
     # Единственный запрос списка жанров в рамках этого меню
     rows, headers = get_genres()
 
-    display_genres(rows, headers)
+    min_year, max_year = get_release_year_range()
+
+    display_genres(
+        rows,
+        headers,
+        min_year,
+        max_year,
+    )
 
     genre_id, genre = select_genre(rows)
     year_from, year_to = input_year_range()
@@ -357,13 +377,23 @@ def handle_genre_search() -> str | None:
                 break
 
             if command == "g":
-                display_genres(rows, headers)
+                display_genres(
+                    rows,
+                    headers,
+                    min_year,
+                    max_year,
+                )
 
                 genre_id, genre = select_genre(rows)
                 break
 
             if command == "a":
-                display_genres(rows, headers)
+                display_genres(
+                    rows,
+                    headers,
+                    min_year,
+                    max_year,
+                )
 
                 genre_id, genre = select_genre(rows)
                 year_from, year_to = input_year_range()

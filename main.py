@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)  # Создаю логгер с имене�
 def main() -> None:
     # Достаю из переменной (словаря) название БД
     db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
-    logger.info(f"=== Запуск приложения {db_name} Film Query ===")
+    logger.info(f"=== Запуск приложения {db_name} Film Search ===")
     try:
 
         get_user_input()

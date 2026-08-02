@@ -1,118 +1,432 @@
-from flask import Flask, render_template, request
+"""Веб-интерфейс приложения поиска фильмов на FastAPI."""
+# Запуск для разработки: python -m uvicorn app:app --reload
+import logging
+from pathlib import Path
 
-app = Flask(__name__)
+import mysql.connector
+from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from pymongo.errors import PyMongoError
+
+from database.film_service import (
+    count_films_by_genre,
+    count_films_by_name,
+    get_films_by_genre,
+    get_films_by_name,
+    get_genres,
+    get_release_year_range,
+)
+from database.mongo_history_write import (
+    get_last_queries,
+    get_top_queries,
+    save_query,
+)
+from utils.exceptions import ServiceUnavailableError
+
+BASE_DIR = Path(__file__).resolve().parent
+TEMPLATES_DIR = BASE_DIR / "templates"
+
+PAGE_SIZE = 10
+
+logger = logging.getLogger(__name__)
+
+app = FastAPI(
+    title="Sakila Movie Search",
+    description="Поиск фильмов в базе данных Sakila",
+)
+
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
-@app.route("/")
-def index():
-    """Показывает главную страницу с формами поиска."""
+def render_error_page(
+    request: Request,
+    *,
+    status_code: int,
+    title: str,
+    message: str,
+):
+    """Формирует HTML-страницу с сообщением об ошибке."""
 
-    return render_template("index.html")
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "status_code": status_code,
+            "error_title": title,
+            "error_message": message,
+        },
+        status_code=status_code,
+    )
 
 
-@app.route("/search")
-def search():
-    """Получает данные, отправленные формой поиска."""
+@app.exception_handler(HTTPException)
+def handle_http_exception(
+    request: Request,
+    exception: HTTPException,
+):
+    """Отображает ошибки пользовательского HTTP-запроса."""
 
-    search_type = request.args.get("search_type", "")
-    title = request.args.get("title", "").strip()
+    return render_error_page(
+        request,
+        status_code=exception.status_code,
+        title="Ошибка запроса",
+        message=str(exception.detail),
+    )
 
-    print("=" * 50)
-    print("Получены данные из HTML-формы")
-    print(f"Тип поиска: {search_type}")
-    print(f"Название фильма: {title}")
-    print("=" * 50)
 
-    if search_type != "name":
-        return """
-            <h2>Неизвестный тип поиска</h2>
-            <a href="/">Вернуться на главную страницу</a>
-        """
+@app.exception_handler(RequestValidationError)
+def handle_validation_error(
+    request: Request,
+    exception: RequestValidationError,
+):
+    """Обрабатывает неверные типы и значения параметров."""
 
-    if not title:
-        return """
-            <h2>Название фильма не введено</h2>
-            <a href="/">Вернуться на главную страницу</a>
-        """
+    logger.warning(
+        "Некорректные параметры веб-запроса: %s",
+        exception.errors(),
+    )
 
-    return f"""
-        <!doctype html>
-        <html lang="ru">
-        <head>
-            <meta charset="utf-8">
+    return render_error_page(
+        request,
+        status_code=422,
+        title="Некорректные параметры",
+        message=(
+            "Проверьте введённые значения и повторите запрос."
+        ),
+    )
 
-            <meta
-                name="viewport"
-                content="width=device-width, initial-scale=1"
-            >
 
-            <title>Результат поиска</title>
+@app.exception_handler(ServiceUnavailableError)
+def handle_service_unavailable(
+    request: Request,
+    exception: ServiceUnavailableError,
+):
+    """Обрабатывает недоступность MySQL или MongoDB."""
 
-            <link
-                href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-                rel="stylesheet"
-            >
-        </head>
+    logger.error(
+        "Внешний сервис недоступен: %s",
+        exception.service,
+    )
 
-        <body class="bg-light">
+    return render_error_page(
+        request,
+        status_code=503,
+        title="Сервис временно недоступен",
+        message=(
+            f"Не удалось обратиться к сервису "
+            f"{exception.service}. Попробуйте позже."
+        ),
+    )
 
-            <nav class="navbar navbar-dark bg-dark">
-                <div class="container">
-                    <a class="navbar-brand fw-bold" href="/">
-                        🎬 Sakila Movie Search
-                    </a>
-                </div>
-            </nav>
 
-            <main class="container py-5">
+@app.exception_handler(mysql.connector.Error)
+def handle_mysql_error(
+    request: Request,
+    exception: mysql.connector.Error,
+):
+    """Обрабатывает ошибки выполнения операций MySQL."""
 
-                <div class="row justify-content-center">
+    logger.error(
+        "Ошибка MySQL в веб-приложении: %s",
+        exception,
+    )
 
-                    <div class="col-12 col-md-8">
+    return render_error_page(
+        request,
+        status_code=500,
+        title="Ошибка базы данных",
+        message=(
+            "Не удалось выполнить запрос к базе фильмов."
+        ),
+    )
 
-                        <div class="card border-0 shadow">
 
-                            <div class="card-body p-4 p-md-5">
+@app.exception_handler(PyMongoError)
+def handle_mongodb_error(
+    request: Request,
+    exception: PyMongoError,
+):
+    """Обрабатывает ошибки чтения истории из MongoDB."""
 
-                                <h1 class="h3 mb-4">
-                                    Данные успешно получены
-                                </h1>
+    logger.error(
+        "Ошибка MongoDB в веб-приложении: %s",
+        exception,
+    )
 
-                                <div class="alert alert-success">
-                                    Flask получил данные из HTML-формы.
-                                </div>
+    return render_error_page(
+        request,
+        status_code=503,
+        title="История временно недоступна",
+        message=(
+            "Не удалось получить историю поисковых запросов."
+        ),
+    )
 
-                                <p class="mb-2">
-                                    <strong>Тип поиска:</strong>
-                                    {search_type}
-                                </p>
 
-                                <p class="mb-4">
-                                    <strong>Название фильма:</strong>
-                                    {title}
-                                </p>
+def save_query_safely(search_type: str, query: str) -> None:
+    """Сохраняет историю, не прерывая поиск при ошибке MongoDB."""
 
-                                <a
-                                    href="/"
-                                    class="btn btn-primary"
-                                >
-                                    Вернуться к поиску
-                                </a>
+    try:
+        save_query(search_type, query)
+    except (ServiceUnavailableError, PyMongoError):
+        logger.exception("Не удалось сохранить историю поиска")
 
-                            </div>
 
-                        </div>
+def format_genre_history_query(
+    genre: str,
+    year_from: int,
+    year_to: int,
+) -> str:
+    """Формирует описание поиска для истории."""
 
-                    </div>
+    if year_from == year_to:
+        return f"Genre: {genre}, year: {year_from}"
 
-                </div>
+    return f"Genre: {genre}, years: {year_from}-{year_to}"
 
-            </main>
 
-        </body>
-        </html>
-    """
+@app.get("/", response_class=HTMLResponse)
+def index(request: Request):
+    """Отображает главную страницу с параметрами поиска."""
 
-#fffffffffffffffffffffffffffffffffffff
-if __name__ == "__main__":
-    app.run(debug=True)
+    genre_rows, _ = get_genres()
+    min_year, max_year = get_release_year_range()
+
+    genres = [
+        {
+            "id": genre_id,
+            "name": genre_name,
+        }
+        for genre_id, genre_name in genre_rows
+    ]
+
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={
+            "genres": genres,
+            "min_year": min_year,
+            "max_year": max_year,
+        },
+    )
+
+
+@app.get("/search", response_class=HTMLResponse)
+def search(
+    request: Request,
+    search_type: str,
+    title: str = "",
+    genre_id: int | None = Query(default=None, ge=1),
+    year_from: str | None = None,
+    year_to: str | None = None,
+    page: int = Query(default=1, ge=1),
+):
+    """Выполняет поиск и отображает страницу результатов."""
+
+    if search_type == "name":
+        title = title.strip()
+
+        if not title:
+            raise HTTPException(
+                status_code=400,
+                detail="Название фильма не введено.",
+            )
+
+        total = count_films_by_name(title)
+        offset = (page - 1) * PAGE_SIZE
+
+        rows, headers = get_films_by_name(
+            title,
+            PAGE_SIZE,
+            offset,
+        )
+
+        search_description = f"По названию: {title}"
+
+        if page == 1 and total > 0:
+            save_query_safely("by_name", title)
+
+    elif search_type == "genre_years":
+        if (
+                genre_id is None
+                or year_from is None
+                or year_to is None
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Жанр и диапазон годов не указаны.",
+            )
+
+        year_from = year_from.strip()
+        year_to = year_to.strip()
+
+        if not (
+                year_from.isdigit()
+                and year_to.isdigit()
+                and len(year_from) == 4
+                and len(year_to) == 4
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Каждый год должен состоять ровно из четырёх цифр.",
+            )
+
+        requested_year_from = int(year_from)
+        requested_year_to = int(year_to)
+
+        if requested_year_from > requested_year_to:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Начальный год не должен быть больше конечного."
+                ),
+            )
+
+        min_year, max_year = get_release_year_range()
+
+        year_from = min(
+            max(requested_year_from, min_year),
+            max_year,
+        )
+
+        year_to = min(
+            max(requested_year_to, min_year),
+            max_year,
+        )
+
+        genre_rows, _ = get_genres()
+        genres = dict(genre_rows)
+        genre = genres.get(genre_id)
+
+        if genre is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Выбранный жанр отсутствует.",
+            )
+
+        total = count_films_by_genre(
+            genre_id,
+            year_from,
+            year_to,
+        )
+
+        offset = (page - 1) * PAGE_SIZE
+
+        rows, headers = get_films_by_genre(
+            genre_id,
+            year_from,
+            year_to,
+            PAGE_SIZE,
+            offset,
+        )
+
+        history_query = format_genre_history_query(
+            genre,
+            year_from,
+            year_to,
+        )
+
+        search_description = history_query
+
+        if page == 1 and total > 0:
+            save_query_safely(
+                "by_genre_years",
+                history_query,
+            )
+
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Неизвестный вид поиска.",
+        )
+
+    total_pages = max(
+        1,
+        (total + PAGE_SIZE - 1) // PAGE_SIZE,
+    )
+
+    if page > total_pages:
+        raise HTTPException(
+            status_code=404,
+            detail="Страница результатов не найдена.",
+        )
+
+    previous_url = None
+    next_url = None
+
+    if page > 1:
+        previous_url = request.url.include_query_params(
+            page=page - 1
+        )
+
+    if page < total_pages:
+        next_url = request.url.include_query_params(
+            page=page + 1
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="results.html",
+        context={
+            "rows": rows,
+            "headers": headers,
+            "search_description": search_description,
+            "total": total,
+            "page": page,
+            "total_pages": total_pages,
+            "previous_url": previous_url,
+            "next_url": next_url,
+        },
+    )
+
+
+@app.get("/popular", response_class=HTMLResponse)
+def popular_queries(request: Request):
+    """Отображает пять наиболее популярных поисковых запросов."""
+
+    queries = get_top_queries(limit=5)
+
+    popular = [
+        {
+            "search_type": document["_id"]["search_type"],
+            "query": document["_id"]["query"],
+            "count": document["count"],
+        }
+        for document in queries
+    ]
+
+    return templates.TemplateResponse(
+        request=request,
+        name="popular_queries.html",
+        context={
+            "queries": popular,
+        },
+    )
+
+
+@app.get("/recent", response_class=HTMLResponse)
+def recent_queries(request: Request):
+    """Отображает пять последних поисковых запросов."""
+
+    queries = get_last_queries(limit=5)
+
+    recent = [
+        {
+            "search_type": document["search_type"],
+            "query": document["query"],
+            "created_at": document["created_at"].strftime(
+                "%d.%m.%Y %H:%M:%S"
+            ),
+        }
+        for document in queries
+    ]
+
+    return templates.TemplateResponse(
+        request=request,
+        name="recent_queries.html",
+        context={
+            "queries": recent,
+        },
+    )

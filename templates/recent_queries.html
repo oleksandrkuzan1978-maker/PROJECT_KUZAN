@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
 {% block title %}
-    Популярные запросы — Sakila Movie Search
+    Последние запросы — Sakila Movie Search
 {% endblock %}
 
 {% block content %}
     <header class="bg-primary text-white py-4">
         <div class="container">
             <h1 class="h2 fw-bold mb-2">
-                ⭐ Популярные запросы
+                🕒 Последние запросы
             </h1>
 
             <p class="mb-0">
-                Запросы, которые пользователи выполняли чаще всего
+                Пять последних выполненных поисков
             </p>
         </div>
     </header>
@@ -26,7 +26,7 @@
                             <th scope="col">№</th>
                             <th scope="col">Тип поиска</th>
                             <th scope="col">Запрос</th>
-                            <th scope="col">Количество</th>
+                            <th scope="col">Дата и время</th>
                         </tr>
                     </thead>
 
@@ -51,11 +51,7 @@
 
                                 <td>{{ query.query }}</td>
 
-                                <td>
-                                    <span class="badge rounded-pill text-bg-warning">
-                                        {{ query.count }}
-                                    </span>
-                                </td>
+                                <td>{{ query.created_at }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -72,8 +68,8 @@
                 Вернуться к поиску
             </a>
 
-            <a href="/recent" class="btn btn-outline-secondary">
-                Последние запросы
+            <a href="/popular" class="btn btn-outline-secondary">
+                Популярные запросы
             </a>
         </div>
     </section>
