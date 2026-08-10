@@ -1,0 +1,38 @@
+from functools import lru_cache
+# ...
+@funclog
+def show_paginated_results(
+    fetch_function: PageFetcher,
+    fetch_args: tuple[str | int, ...],
+    *,
+    total: int,
+    title: str,
+    genre: str | None = None,
+) -> str:
+
+    pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
+    page = 1
+
+    @lru_cache(maxsize=20)
+    def fetch_page(page_number: int) -> QueryResult:
+        """Загружает и кеширует одну страницу результатов."""
+
+        page_offset = (page_number - 1) * PAGE_SIZE
+
+        return fetch_function(
+            *fetch_args,
+            PAGE_SIZE,
+            page_offset,
+        )
+
+    while True:
+        clear_screen()
+
+        print(Fore.YELLOW + title)
+
+        offset = (page - 1) * PAGE_SIZE
+        rows, headers = fetch_page(page)
+
+        print(tabulate(rows, headers=headers, tablefmt="psql"))
+
+        # Остальной код функции...

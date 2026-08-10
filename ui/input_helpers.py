@@ -11,24 +11,27 @@ MIN_YEAR = 1901
 MAX_YEAR = 2155
 
 
-def input_command(prompt: str) -> str:
-    """Запрашивает команду и обрабатывает команду выхода."""
+# def input_command(prompt: str) -> str:
+#     """Запрашивает команду и обрабатывает команду выхода."""
+#
+#     value = input(prompt).strip().lower()
+#
+#     if value == "q":
+#         print(Fore.CYAN + "\nExit the program.\n")
+#         raise SystemExit()
+#
+#     return value
 
-    value = input(prompt).strip().lower()
 
-    if value == "q":
-        print(Fore.CYAN + "\nExit the program.\n")
-        raise SystemExit()
-
-    return value
-
-
-def input_text(prompt: str) -> str:
-    """Запрашивает непустой текст без изменения регистра."""
+def input_any(prompt: str) -> str:
+    """Запрашивает непустой текст и обрабатывает команду вывода."""
     while True:
-        value = input(prompt).strip()
+        value = input(prompt).strip().lower()
 
-        if value:
+        if value == "q":
+            print(Fore.CYAN + "\nExit the program.\n")
+            raise SystemExit()
+        elif value:
             return value
 
         print(Fore.RED + "\nThe value must not be empty.")
@@ -37,7 +40,7 @@ def input_text(prompt: str) -> str:
 def input_number(message: str) -> int:
     """Запрашивает у пользователя целое число."""
     while True:
-        value = input_command(message)
+        value = input_any(message)
 
         if value.isdigit():
             return int(value)
@@ -49,6 +52,9 @@ def input_year_range() -> tuple[int, int] | None:
     """Запрашивает и проверяет диапазон годов."""
     while True:
         year_from = input_number("\nEnter the start year of the range (4 digits): ")
+        if len(str(year_from)) != 4:
+            print(Fore.RED + "\n\tInvalid year input")
+            continue
         year_to = input_number("Enter the end year of the range (4 digits): ")
 
         if year_from < MIN_YEAR:
@@ -56,7 +62,7 @@ def input_year_range() -> tuple[int, int] | None:
         if year_to > MAX_YEAR:
             year_to = MAX_YEAR
 
-        if len(str(year_from)) == len(str(year_to)) == 4 and year_from <= year_to:
+        if len(str(year_to)) == 4 and year_from <= year_to:
             return year_from, year_to
 
         else:

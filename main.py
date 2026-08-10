@@ -13,6 +13,7 @@ from utils.logger_config import setup_logging
 
 setup_logging()
 from ui.console import get_user_input
+from ui.pagination import clear_screen
 from utils.exceptions import ServiceUnavailableError
 from config.local_settings import dbconfig
 
@@ -24,6 +25,9 @@ def main() -> None:
     # Достаю из переменной (словаря) название БД
     db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
     logger.info(f"=== Запуск приложения {db_name} Film Search ===")
+
+    clear_screen()
+
     try:
 
         get_user_input()

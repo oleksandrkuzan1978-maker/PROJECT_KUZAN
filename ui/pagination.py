@@ -9,10 +9,11 @@
 import logging
 from typing import Any, TypeAlias
 from collections.abc import Callable
+from functools import lru_cache
 
 from colorama import Fore, Style
 from tabulate import tabulate
-from ui.input_helpers import input_command
+from ui.input_helpers import input_any
 from utils.logger_config import funclog
 
 QueryResult: TypeAlias = tuple[
@@ -75,7 +76,7 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
             end="",
         )
 
-        command = input_command("") #input().strip().lower()
+        command = input_any("")
 
         clear_screen()
 

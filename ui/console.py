@@ -29,8 +29,8 @@ from database.film_service import (
 from database.mongo_history_write import save_query
 from ui.history_view import output_last_queries, output_top_queries
 from ui.input_helpers import (
-    input_command,
-    input_text,
+    # input_command,
+    input_any,
     input_year_range,
     select_genre,
 )
@@ -82,7 +82,7 @@ def get_user_input() -> None:
 4 - 🕒  Show recent searches
 q - 🚪   Exit """
         )
-        choice = input_command(
+        choice = input_any(
             Fore.GREEN
             + "\tMake a choice: "
             + Style.RESET_ALL
@@ -181,34 +181,38 @@ def handle_name_search() -> str | None:
         """
 
     logger.info("Пользователь выбрал поиск по названию фильма")
+    while True:
+        name = input_any("\nEnter the movie title: ")
 
-    name = input_text("\nEnter the movie title: ")
+        total = count_films_by_name(name)
 
-    total = count_films_by_name(name)
+        logger.info(
+            "Поиск по названию выполнен: total=%d",
+            total,
+        )
 
-    logger.info(
-        "Поиск по названию выполнен: total=%d",
-        total,
-    )
+        save_query_safely("by_name", name)
 
-    save_query_safely("by_name", name)
+        if total == 0:
+            print("\nNo films were found for this query.")
+            return None
 
-    if total == 0:
-        print("\nNo films were found for this query.")
-        return None
+        title = (
+            f"\n========= Displaying movies from DB '{db_name}' by name =========="
+        )
+        result = show_paginated_results(
+            get_films_by_name,
+            (name,),
+            total=total,
+            title=title,
+        )
+        if result == "search":
+            # Повторяется цикл, снова запрашивается название
+            continue
+        if result == "exit":
+            return "exit"
+        return None # Команда "menu"
 
-    title = (
-        f"\n========= Displaying movies from DB '{db_name}' by name =========="
-    )
-
-
-
-    return show_paginated_results(
-        get_films_by_name,
-        (name,),
-        total=total,
-        title=title,
-    )
 
 
 def display_genres(
@@ -358,7 +362,7 @@ def handle_genre_search() -> str | None:
                 return None
 
         while True:
-            command = input_command(
+            command = input_any(
                 Fore.GREEN
                 + "\n[y] — change the years, "
                   "[g] — change genre, "
