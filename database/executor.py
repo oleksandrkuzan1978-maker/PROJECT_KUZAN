@@ -1,20 +1,20 @@
 """
 Выполнение параметризованных SELECT-запросов MySQL.
 
-Модуль содержит низкоуровневую функцию, которая выполняет
+Модуль содержит функцию, которая выполняет
 переданный запрос через открытый курсор и возвращает полученные
 строки вместе с названиями столбцов.
 """
 
 from typing import Any
+import logging
+
 from mysql.connector.cursor import MySQLCursorAbstract
 from utils.logger_config import funclog
-import logging
 
 logger = logging.getLogger(__name__)  # Создаю логгер с именем "executor".
 
 
-# Метод getLogger возвращает объект логгера с именем этого модуля.
 @funclog
 def execute_query(
         cursor: MySQLCursorAbstract,
@@ -50,7 +50,7 @@ def execute_query(
 
     rows = cursor.fetchall()  # Методом курсора достаем сразу весь результат запроса из курсора.
     # Cписок кортежей. Каждый кортеж - это одна строка таблицы
-    headers = [col[0] for col in cursor.description or ()]  # второй эл-нт - это шапка таблицы рез-тов
+    headers = [col[0] for col in cursor.description or ()]  # - это шапка таблицы рез-тов
 
     logger.debug(
         "SQL-запрос выполнен: rows=%d, columns=%d",

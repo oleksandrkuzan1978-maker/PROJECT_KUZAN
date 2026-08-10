@@ -82,20 +82,15 @@ def get_user_input() -> None:
 4 - 🕒  Show recent searches
 q - 🚪   Exit """
         )
-
         choice = input_command(
             Fore.GREEN
             + "\tMake a choice: "
             + Style.RESET_ALL
             + Fore.WHITE
         )
-
-        # Очистка экрана
-        clear_screen()
-
+        clear_screen()  # Очистка экрана
         print()
-
-        action = actions.get(choice)
+        action = actions.get(choice) # Выбор ф-ции из actions по команде пользователя
 
         if action is None:
             print(
@@ -105,7 +100,7 @@ q - 🚪   Exit """
             continue
 
         try:
-            result = action()
+            result = action() # Вызов ф-ции, выбранной из словаря actions
 
             if result == "exit":
                 return
@@ -196,6 +191,8 @@ def handle_name_search() -> str | None:
         total,
     )
 
+    save_query_safely("by_name", name)
+
     if total == 0:
         print("\nNo films were found for this query.")
         return None
@@ -204,7 +201,7 @@ def handle_name_search() -> str | None:
         f"\n========= Displaying movies from DB '{db_name}' by name =========="
     )
 
-    save_query_safely("by_name", name)
+
 
     return show_paginated_results(
         get_films_by_name,
@@ -247,7 +244,7 @@ def format_genre_history_query(
         year_from: int,
         year_to: int,
 ) -> str:
-    """Формирует описание поиска для сохранения в истории.
+    """Формирует описание поиска по жанру и годам для сохранения в истории.
 
         Если границы диапазона совпадают, формирует описание одного года.
         В остальных случаях указывает начальный и конечный годы.
@@ -324,6 +321,17 @@ def handle_genre_search() -> str | None:
             total,
         )
 
+        history_query = format_genre_history_query(
+            genre,
+            year_from,
+            year_to,
+        )
+
+        save_query_safely(
+            "by_genre_years",
+            history_query,
+        )
+
         if total == 0:
             print(
                 Fore.RED
@@ -333,17 +341,6 @@ def handle_genre_search() -> str | None:
             title = (
                 f"\n========= Movies from DB '{db_name}' "
                 f"by genre and year ========="
-            )
-
-            history_query = format_genre_history_query(
-                genre,
-                year_from,
-                year_to,
-            )
-
-            save_query_safely(
-                "by_genre_years",
-                history_query,
             )
 
             result = show_paginated_results(

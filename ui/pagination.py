@@ -12,7 +12,7 @@ from collections.abc import Callable
 
 from colorama import Fore, Style
 from tabulate import tabulate
-
+from ui.input_helpers import input_command
 from utils.logger_config import funclog
 
 QueryResult: TypeAlias = tuple[
@@ -75,7 +75,7 @@ def get_navigation(pages: int) -> tuple[str, None | int] | None:
             end="",
         )
 
-        command = input().strip().lower()
+        command = input_command("") #input().strip().lower()
 
         clear_screen()
 

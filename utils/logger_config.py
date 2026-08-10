@@ -5,13 +5,13 @@
 и ошибочных сообщений, задаёт формат записей и предоставляет
 декоратор для журналирования вызовов функций.
 """
-
-from colorlog import ColoredFormatter  # Для настройки цвета лог-сообщений в консоли
 from typing import Callable, Any
 from functools import wraps
 import logging
 import os
 import sys
+
+from colorlog import ColoredFormatter  # Для настройки цвета лог-сообщений в консоли
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ def funclog(func: Callable) -> Callable:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         logger.debug(
-            "Вызов функции: %s",
+            "Вызов функции %s",
             func.__name__,
         )
 

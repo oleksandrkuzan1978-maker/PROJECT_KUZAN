@@ -49,6 +49,7 @@ def _get_count(
     """Возвращает COUNT(*) из переданного запроса."""
 
     rows, _ = _execute(query, *params)
+
     return rows[0][0]
 
 

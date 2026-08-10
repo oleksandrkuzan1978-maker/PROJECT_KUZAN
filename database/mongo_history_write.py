@@ -58,9 +58,8 @@ def save_query(search_type: str, query: str) -> None:
 
             collection.insert_one(document)
 
-            # Если сильно хочется посмотреть, что и как записалось в коллекцию
-            # for doc in collection.find():
-            #     print(doc)
+            # Если сильно хочется проверить результат записи в коллекцию:
+            # print("Inserted ID:", result.inserted_id)  # result = collection.insert_one(document)
 
     except (ConnectionFailure, ServerSelectionTimeoutError) as error:
         raise ServiceUnavailableError("MongoDB") from error
@@ -160,5 +159,46 @@ def get_last_queries(collection, limit: int = 5):
                 Если получить данные из MongoDB не удалось.
         """
 
-    return list(collection.find({},
-                                {"_id": 0}).sort("created_at", -1).limit(limit))
+    return list(
+        collection.aggregate([
+            # Сначала новые запросы
+            {
+                "$sort": {
+                    "created_at": -1,
+                }
+            },
+
+            # Объединяем одинаковые запросы
+            {
+                "$group": {
+                    "_id": "$query",
+                    "search_type": {"$first": "$search_type"},
+                    "query": {"$first": "$query"},
+                    "created_at": {"$first": "$created_at"},
+                }
+            },
+
+            # После группировки порядок не гарантирован,
+            # поэтому снова сортируем
+            {
+                "$sort": {
+                    "created_at": -1,
+                }
+            },
+
+            # Берём пять последних уникальных запросов
+            {
+                "$limit": limit,
+            },
+
+            # Не возвращаем техническое поле _id
+            {
+                "$project": {
+                    "_id": 0,
+                    "search_type": 1,
+                    "query": 1,
+                    "created_at": 1,
+                }
+            },
+        ])
+    )

@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Sakila Movie Search",
-    description="Поиск фильмов в базе данных Sakila",
+    description="Searching for films in the Sakila database",
 )
 
 templates = Jinja2Templates(directory=TEMPLATES_DIR)

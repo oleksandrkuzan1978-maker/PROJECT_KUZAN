@@ -6,13 +6,14 @@
 на уровне пользовательского интерфейса.
 """
 
-# database/connection.py
-import mysql.connector
-from config.local_settings import dbconfig  # импорт словаря с настройками подключения
-from mysql.connector.connection import MySQLConnectionAbstract
 import logging
-from utils.logger_config import funclog
+
+import mysql.connector
+from mysql.connector.connection import MySQLConnectionAbstract
 from mysql.connector.errors import InterfaceError, OperationalError
+
+from config.local_settings import dbconfig  # импорт словаря с настройками подключения
+from utils.logger_config import funclog
 from utils.exceptions import ServiceUnavailableError
 
 logger = logging.getLogger(__name__)
