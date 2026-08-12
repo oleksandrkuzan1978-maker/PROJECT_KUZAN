@@ -45,6 +45,13 @@ def main() -> None:
         )
         sys.exit(1)
 
+    except mysql.connector.ProgrammingError:
+        logger.exception(
+            "Приложение завершено из-за ошибки в SQL-запросе"
+        )
+        print("Internal application error.")
+        sys.exit(1)
+
     except mysql.connector.Error:
         logger.exception("Приложение завершено из-за ошибки работы с БД")
         print("Database error.")

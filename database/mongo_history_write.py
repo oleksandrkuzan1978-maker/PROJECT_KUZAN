@@ -28,7 +28,7 @@ MONGODB_URL = MONGODB_URL_WRITE
 
 
 # Ф-ция сохранения результата запроса в базе данных MongoDB
-def save_query(search_type: str, query: str) -> None:
+def save_query(*args) -> None:
     """
     Сохраняет поисковый запрос в MongoDB.
 
@@ -37,21 +37,23 @@ def save_query(search_type: str, query: str) -> None:
             Вид поиска, например ``by_name`` или
             ``by_genre_years``.
         query:
-            Текстовое представление параметров поиска.
+            Словарное представление параметров поиска.
+        total:
+            Количество найденніх по запросу фильмов
 
     Raises:
         PyMongoError:
             Если подключиться к MongoDB или сохранить документ
             не удалось.
     """
-    document = {
-        "search_type": search_type,
-        "query": query,
-        "created_at": datetime.now(),
-    }
-    if search_type == "by_name":
-        document["query"] = document["query"].replace("%", "")  # Заменяем в названии фильма % на ""
+    search_type, query, total = args
+    document = {"search_type": search_type,
+                "query": query,
+                "results_count": total,
+                "created_at": datetime.now()}
+
     try:
+
         with MongoClient(MONGODB_URL) as client:
 
             collection = client[DB_NAME][COLLECTION_NAME]
@@ -135,7 +137,7 @@ def get_top_queries(collection, limit: int = 5):
                                 "query": "$query"},
                         "count": {"$sum": 1}}},
             {"$sort": {"count": -1}},
-            {"$limit": limit}]))
+            {"$limit": limit},]))
 
 
 # вернуть последние 5 запросов.

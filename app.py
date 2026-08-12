@@ -165,26 +165,41 @@ def handle_mongodb_error(
     )
 
 
-def save_query_safely(search_type: str, query: str) -> None:
+def save_query_safely(*args) -> None:
     """Сохраняет историю, не прерывая поиск при ошибке MongoDB."""
 
     try:
-        save_query(search_type, query)
+        save_query(*args)
     except (ServiceUnavailableError, PyMongoError):
         logger.exception("Не удалось сохранить историю поиска")
 
 
 def format_genre_history_query(
-    genre: str,
-    year_from: int,
-    year_to: int,
-) -> str:
-    """Формирует описание поиска для истории."""
+        genre: str,
+        year_from: int,
+        year_to: int,
+) -> dict:
+    """Формирует описание поиска по жанру и годам для сохранения в истории.
+
+        Если границы диапазона совпадают, формирует описание одного года.
+        В остальных случаях указывает начальный и конечный годы.
+
+        Args:
+            genre:
+                Название выбранного жанра.
+            year_from:
+                Начальный год диапазона.
+            year_to:
+                Конечный год диапазона.
+
+        Returns:
+            Текстовое описание жанра и выбранного периода.
+        """
 
     if year_from == year_to:
-        return f"Genre: {genre}, year: {year_from}"
+        return {"Genre": f"{genre}", "year":f"{year_from}"}
 
-    return f"Genre: {genre}, years: {year_from}-{year_to}"
+    return {"Genre": f"{genre}","years":f"{year_from} - {year_to}"}
 
 
 @app.get("/", response_class=HTMLResponse)

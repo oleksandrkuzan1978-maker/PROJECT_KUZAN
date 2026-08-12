@@ -28,15 +28,16 @@ def output_top_queries() -> None:
         """
 
     queries = get_top_queries()
-
+    print(queries)
     print(Fore.YELLOW + "========== Top queries ==========" + Style.RESET_ALL + Fore.WHITE)
     try:
         for i, q in enumerate(queries, start=1):
 
             if q["_id"]["search_type"] == "by_name":
-                print(f"{i}. Search keyword: {q["_id"]["query"]}")
+                print(f"{i}. Search keyword: {q["_id"]["query"]["keyword"]}")
             else:
-                print(f"{i}. {q["_id"]["query"]}")
+                print(f"{i}. Genre: {q["_id"]["query"]["genre"]}, "
+                      f"years: {q["_id"]["query"]["years"]}")
             print(f"   Number of requests: {q["count"]}\n")
     except (KeyError, TypeError):
         logger.exception("Некорректный формат документов истории MongoDB")
@@ -60,15 +61,21 @@ def output_last_queries() -> None:
     """
 
     queries = get_last_queries()
+    print(queries)
 
     print(Fore.YELLOW + "========== Recent queries ==========" + Style.RESET_ALL + Fore.WHITE)
     try:
         for i, q in enumerate(queries, start=1):
 
+            """"search_type": 1,
+            "query": 1,
+            "created_at": 1,"""
+
             if q["search_type"] == "by_name":
-                print(f"{i}. Search keyword: {q["query"]}")
+                print(f"{i}. Search keyword: {q["query"]["keyword"]}")
             else:
-                print(f"{i}. {q["query"]}")
+                print(f"{i}. Genre: {q["query"]["genre"]}, "
+                      f"years: {q["query"]["years"]}")
             print(f"   Request date: {q["created_at"].strftime("%Y-%m-%d %H:%M:%S")}\n")
     except (KeyError, TypeError, AttributeError):
         logger.exception(

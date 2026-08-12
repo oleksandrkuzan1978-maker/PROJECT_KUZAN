@@ -100,6 +100,7 @@ q - 🚪   Exit """
             continue
 
         try:
+
             result = action() # Вызов ф-ции, выбранной из словаря actions
 
             if result == "exit":
@@ -117,9 +118,7 @@ q - 🚪   Exit """
             )
 
         except mysql.connector.ProgrammingError:
-            logger.exception("Ошибка в SQL-запросе приложения")
-            print(Fore.RED + "Internal application error.")
-            return
+            raise
 
         except mysql.connector.Error:
             logger.exception("Ошибка БД в консольном интерфейсе")
@@ -136,11 +135,11 @@ q - 🚪   Exit """
             )
 
 
-def save_query_safely(search_type: str, query: str) -> None:
+def save_query_safely(*args) -> None:
     """Сохраняет историю, не прерывая основной поиск при ошибке MongoDB."""
     try:
 
-        save_query(search_type, query=query)
+        save_query(*args)
 
     except ServiceUnavailableError:
         logger.exception("MongoDB недоступна: история не сохранена")
@@ -190,8 +189,8 @@ def handle_name_search() -> str | None:
             "Поиск по названию выполнен: total=%d",
             total,
         )
-
-        save_query_safely("by_name", name)
+        by_name = {"keyword": f"{name}"}
+        save_query_safely("by_name", by_name, total,)
 
         if total == 0:
             print("\nNo films were found for this query.")
@@ -241,34 +240,6 @@ def display_genres(
         + Style.RESET_ALL
         + Fore.WHITE
     )
-
-
-def format_genre_history_query(
-        genre: str,
-        year_from: int,
-        year_to: int,
-) -> str:
-    """Формирует описание поиска по жанру и годам для сохранения в истории.
-
-        Если границы диапазона совпадают, формирует описание одного года.
-        В остальных случаях указывает начальный и конечный годы.
-
-        Args:
-            genre:
-                Название выбранного жанра.
-            year_from:
-                Начальный год диапазона.
-            year_to:
-                Конечный год диапазона.
-
-        Returns:
-            Текстовое описание жанра и выбранного периода.
-        """
-
-    if year_from == year_to:
-        return f"Genre: {genre}, year: {year_from}"
-
-    return f"Genre: {genre}, years: {year_from}-{year_to}"
 
 
 def handle_genre_search() -> str | None:
@@ -325,15 +296,14 @@ def handle_genre_search() -> str | None:
             total,
         )
 
-        history_query = format_genre_history_query(
-            genre,
-            year_from,
-            year_to,
-        )
+        if year_from == year_to:
+            history_query = {"genre": f"{genre}", "years": f"{year_from}"}
+        else:
+            history_query = {"genre": f"{genre}", "years": f"{year_from}-{year_to}"}
 
         save_query_safely(
             "by_genre_years",
-            history_query,
+            history_query, total,
         )
 
         if total == 0:
