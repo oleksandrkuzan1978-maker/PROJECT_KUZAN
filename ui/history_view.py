@@ -29,6 +29,7 @@ def output_top_queries() -> None:
 
     queries = get_top_queries()
     print(queries)
+
     print(Fore.YELLOW + "========== Top queries ==========" + Style.RESET_ALL + Fore.WHITE)
     try:
         for i, q in enumerate(queries, start=1):
@@ -61,15 +62,10 @@ def output_last_queries() -> None:
     """
 
     queries = get_last_queries()
-    print(queries)
 
     print(Fore.YELLOW + "========== Recent queries ==========" + Style.RESET_ALL + Fore.WHITE)
     try:
         for i, q in enumerate(queries, start=1):
-
-            """"search_type": 1,
-            "query": 1,
-            "created_at": 1,"""
 
             if q["search_type"] == "by_name":
                 print(f"{i}. Search keyword: {q["query"]["keyword"]}")

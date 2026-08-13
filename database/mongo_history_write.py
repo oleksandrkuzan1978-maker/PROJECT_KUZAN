@@ -47,6 +47,7 @@ def save_query(*args) -> None:
             не удалось.
     """
     search_type, query, total = args
+
     document = {"search_type": search_type,
                 "query": query,
                 "results_count": total,

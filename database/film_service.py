@@ -6,8 +6,6 @@
 и извлечение результатов из курсора.
 """
 
-# services/film_service.py
-
 from typing import Any, TypeAlias
 
 from database.connection import get_connection
@@ -63,6 +61,7 @@ def count_films_by_name(name: str) -> int:
     """Возвращает количество фильмов, найденных по названию."""
 
     name_pattern = f"%{name}%"
+
     return _get_count(NAME_TOTAL, name_pattern)
 
 @funclog

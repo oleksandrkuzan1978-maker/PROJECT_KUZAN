@@ -49,7 +49,15 @@
                                     {% endif %}
                                 </td>
 
-                                <td>{{ query.query }}</td>
+                                <td>
+                                    {% if query.search_type == "by_name" %}
+                                        Ключевое слово:
+                                        {{ query.query.keyword }}
+                                    {% else %}
+                                        Жанр: {{ query.query.genre }},
+                                        годы: {{ query.query.years }}
+                                    {% endif %}
+                                </td>
 
                                 <td>
                                     <span class="badge rounded-pill text-bg-warning">

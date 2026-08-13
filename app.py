@@ -178,7 +178,7 @@ def format_genre_history_query(
         genre: str,
         year_from: int,
         year_to: int,
-) -> dict:
+) -> dict[str, str]:
     """Формирует описание поиска по жанру и годам для сохранения в истории.
 
         Если границы диапазона совпадают, формирует описание одного года.
@@ -193,13 +193,18 @@ def format_genre_history_query(
                 Конечный год диапазона.
 
         Returns:
-            Текстовое описание жанра и выбранного периода.
+            Словарь с названием жанра и выбранным периодом.
         """
 
     if year_from == year_to:
-        return {"Genre": f"{genre}", "year":f"{year_from}"}
+        years = str(year_from)
+    else:
+        years = f"{year_from}-{year_to}"
 
-    return {"Genre": f"{genre}","years":f"{year_from} - {year_to}"}
+    return {
+        "genre": genre,
+        "years": years,
+    }
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -260,8 +265,15 @@ def search(
 
         search_description = f"По названию: {title}"
 
-        if page == 1 and total > 0:
-            save_query_safely("by_name", title)
+        if page == 1:
+            history_query = {
+                "keyword": title,
+            }
+            save_query_safely(
+                "by_name",
+                history_query,
+                total,
+            )
 
     elif search_type == "genre_years":
         if (
@@ -343,12 +355,16 @@ def search(
             year_to,
         )
 
-        search_description = history_query
+        search_description = (
+            f"Жанр: {history_query['genre']}, "
+            f"годы: {history_query['years']}"
+        )
 
-        if page == 1 and total > 0:
+        if page == 1:
             save_query_safely(
                 "by_genre_years",
                 history_query,
+                total,
             )
 
     else:

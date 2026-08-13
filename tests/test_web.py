@@ -61,7 +61,7 @@ def test_search_by_name_returns_films() -> None:
             "app.get_films_by_name",
             return_value=(rows, headers),
         ),
-        patch("app.save_query_safely"),
+        patch("app.save_query_safely") as save_mock,
     ):
         response = client.get(
             "/search",
@@ -75,6 +75,11 @@ def test_search_by_name_returns_films() -> None:
     assert response.status_code == 200
     assert "ACADEMY DINOSAUR" in response.text
     assert "Найдено:" in response.text
+    save_mock.assert_called_once_with(
+        "by_name",
+        {"keyword": "academy"},
+        1,
+    )
 
 
 def test_genre_years_are_limited_to_database_range() -> None:
@@ -108,7 +113,7 @@ def test_genre_years_are_limited_to_database_range() -> None:
                 ],
             ),
         ) as fetch_mock,
-        patch("app.save_query_safely"),
+        patch("app.save_query_safely") as save_mock,
     ):
         response = client.get(
             "/search",
@@ -135,6 +140,14 @@ def test_genre_years_are_limited_to_database_range() -> None:
         2026,
         10,
         0,
+    )
+    save_mock.assert_called_once_with(
+        "by_genre_years",
+        {
+            "genre": "Action",
+            "years": "1990-2026",
+        },
+        1,
     )
 
 
@@ -210,6 +223,35 @@ def test_second_page_uses_correct_offset() -> None:
     save_mock.assert_not_called()
 
 
+def test_empty_name_search_is_saved_on_first_page() -> None:
+    """Поиск без результатов также сохраняется в истории."""
+
+    with (
+        patch("app.count_films_by_name", return_value=0),
+        patch(
+            "app.get_films_by_name",
+            return_value=([], ["title", "description", "release_year"]),
+        ),
+        patch("app.save_query_safely") as save_mock,
+    ):
+        response = client.get(
+            "/search",
+            params={
+                "search_type": "name",
+                "title": "missing",
+                "page": 1,
+            },
+        )
+
+    assert response.status_code == 200
+    assert "фильмы не найдены" in response.text
+    save_mock.assert_called_once_with(
+        "by_name",
+        {"keyword": "missing"},
+        0,
+    )
+
+
 def test_popular_queries_page() -> None:
     """Страница популярных запросов отображает данные MongoDB."""
 
@@ -217,14 +259,17 @@ def test_popular_queries_page() -> None:
         {
             "_id": {
                 "search_type": "by_name",
-                "query": "academy",
+                "query": {"keyword": "academy"},
             },
             "count": 7,
         },
         {
             "_id": {
                 "search_type": "by_genre_years",
-                "query": "Genre: Action, years: 2000-2006",
+                "query": {
+                    "genre": "Action",
+                    "years": "2000-2006",
+                },
             },
             "count": 3,
         },
@@ -251,7 +296,7 @@ def test_recent_queries_page() -> None:
     documents = [
         {
             "search_type": "by_name",
-            "query": "academy",
+            "query": {"keyword": "academy"},
             "created_at": datetime(
                 2026,
                 8,
