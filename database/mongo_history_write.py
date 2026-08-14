@@ -6,13 +6,9 @@
 Ошибки MongoDB передаются вызывающему уровню для обработки.
 """
 
-# from pprint import pprint
 from datetime import datetime
 from pymongo import MongoClient  # pip install pymongo
-from pymongo.errors import (
-    ConnectionFailure,
-    ServerSelectionTimeoutError,
-)
+from pymongo.errors import (PyMongoError, ConnectionFailure,)
 from utils.exceptions import ServiceUnavailableError
 from functools import wraps
 from config.local_settings import (MONGODB_URL_ATLAS, MONGODB_URL_WRITE, MONGODB_URL_READ)
@@ -28,24 +24,47 @@ MONGODB_URL = MONGODB_URL_WRITE
 MONGODB_URL_1 = MONGODB_URL_ATLAS
 
 
-# Ф-ция сохранения результата запроса в базе данных MongoDB
+def mongo_errors(func):
+    """ Декоратор. Перехватывает ошибки подключения к MongoDB. """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+
+        except ConnectionFailure as error:
+            logger.exception("Не удалось подключиться к MongoDB")
+            raise ServiceUnavailableError("MongoDB") from error
+
+        except PyMongoError:
+            logger.exception("Ошибка при выполнении операции в MongoDB")
+            raise
+
+    return wrapper
+
+
+def get_mongo_collection(mongodb_url):
+    """Создаёт клиент MongoDB и возвращает клиент и коллекцию."""
+
+    client = MongoClient(mongodb_url)
+    collection = client[DB_NAME][COLLECTION_NAME]
+
+    return client, collection
+
+
+# Ф-ция сохранения результата SQL-запроса в базе данных MongoDB
+@mongo_errors
 def save_query(*args) -> None:
     """
     Сохраняет поисковый запрос в MongoDB.
-
-    Args:
+  Args:
         search_type:
             Вид поиска, например ``by_name`` или
             ``by_genre_years``.
         query:
             Словарное представление параметров поиска.
         total:
-            Количество найденніх по запросу фильмов
-
-    Raises:
-        PyMongoError:
-            Если подключиться к MongoDB или сохранить документ
-            не удалось.
+            Количество найденных по запросу фильмов.
     """
     search_type, query, total = args
 
@@ -54,28 +73,23 @@ def save_query(*args) -> None:
                 "results_count": total,
                 "created_at": datetime.now()}
 
-    try:
-        # Запись запроса в ich_edit
-        with MongoClient(MONGODB_URL) as client:
 
-            collection = client[DB_NAME][COLLECTION_NAME]
+    # Запись запроса в основную MongoDB.
+    client, collection = get_mongo_collection(MONGODB_URL)
 
-            collection.insert_one(document)
+    with client:
 
-            # Если сильно хочется проверить результат записи в коллекцию:
-            # print("Inserted ID:", result.inserted_id)  # result = collection.insert_one(document)
+        collection.insert_one(document)
 
+        # Если сильно хочется проверить результат записи в коллекцию:
+        # print("Inserted ID:", result.inserted_id)  # result = collection.insert_one(document)
 
-        # Запись запроса в ATLAS
-        with MongoClient(MONGODB_URL_1) as client:
+    # Запись этого же запроса в Atlas.
+    client, collection = get_mongo_collection(MONGODB_URL_1)
 
-            collection = client[DB_NAME][COLLECTION_NAME]
+    with client:
 
-            collection.insert_one(document)
-
-
-    except (ConnectionFailure, ServerSelectionTimeoutError) as error:
-        raise ServiceUnavailableError("MongoDB") from error
+        collection.insert_one(document)
 
     logger.info("Поисковый запрос сохранён в MongoDB")
 
@@ -83,144 +97,81 @@ def save_query(*args) -> None:
 """************************ Возвращаем запросы ***************************"""
 
 
-# Декоратор подключения к МонгоДБ и исключения ошибок
-def mongo_reader(func):
-    """
-    Предоставляет декорируемой функции коллекцию MongoDB.
-
-    Декоратор открывает соединение для чтения, получает коллекцию,
-    передаёт её первым аргументом функции и гарантирует закрытие
-    клиента после завершения операции.
-
-    Args:
-        func:
-            Функция, первым параметром которой является коллекция
-            MongoDB.
-
-    Returns:
-        Обёрнутую функцию с автоматическим управлением клиентом
-        MongoDB.
-
-    Raises:
-        PyMongoError:
-            Если операция с MongoDB завершилась ошибкой.
-    """
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-
-        try:
-
-            with MongoClient(MONGODB_URL) as client:
-                collection = client[DB_NAME][COLLECTION_NAME]
-                return func(collection, *args, **kwargs)
-
-        except (ConnectionFailure, ServerSelectionTimeoutError) as error:
-            raise ServiceUnavailableError("MongoDB") from error
-
-    return wrapper
-
-
 # вернуть 5 самых популярных запросов.
-@mongo_reader
-def get_top_queries(collection, limit: int = 5):
-    """
-    Возвращает наиболее популярные поисковые запросы.
+@mongo_errors
+def get_top_queries(limit: int = 5):
+    """Возвращает наиболее популярные поисковые запросы."""
 
-    Args:
-        collection:
-            Коллекция истории поисков MongoDB. Передаётся
-            автоматически декоратором ``mongo_reader``.
-        limit:
-            Максимальное количество возвращаемых запросов.
+    client, collection = get_mongo_collection(MONGODB_URL)
 
-    Returns:
-        Список документов с параметрами запросов и количеством
-        их выполнений.
-
-    Raises:
-        PyMongoError:
-            Если получить данные из MongoDB не удалось.
-    """
-    return list(
-        collection.aggregate([
-            {"$group": {"_id": {"search_type": "$search_type",
-                                "query": "$query"},
-                        "count": {"$sum": 1}}},
-            {"$sort": {"count": -1}},
-            {"$limit": limit},
-            {
-                "$project": {
-                    "_id": 0,
-                    "search_type": "$_id.search_type",
-                    "query": "$_id.query",
-                    "count": 1,
+    with client:
+        return list(
+            collection.aggregate([
+                {"$group": {"_id": {"search_type": "$search_type",
+                                    "query": "$query"},
+                            "count": {"$sum": 1}}},
+                {"$sort": {"count": -1}},
+                {"$limit": limit},
+                {
+                    "$project": {
+                        "_id": 0,
+                        "search_type": "$_id.search_type",
+                        "query": "$_id.query",
+                        "count": 1,
+                    }
                 }
-            }
-        ]))
+            ]))
 
 
 # вернуть последние 5 запросов.
-@mongo_reader
-def get_last_queries(collection, limit: int = 5):
-    """
-        Возвращает последние поисковые запросы.
+@mongo_errors
+def get_last_queries(limit: int = 5):
+    """Возвращает последние уникальные поисковые запросы."""
 
-        Args:
-            collection:
-                Коллекция истории поисков MongoDB. Передаётся
-                автоматически декоратором ``mongo_reader``.
-            limit:
-                Максимальное количество возвращаемых запросов.
+    client, collection = get_mongo_collection(MONGODB_URL)
 
-        Returns:
-            Список документов, отсортированных от новых к старым.
+    with client:
 
-        Raises:
-            PyMongoError:
-                Если получить данные из MongoDB не удалось.
-        """
+        return list(
+            collection.aggregate([
+                # Сначала новые запросы
+                {
+                    "$sort": {
+                        "created_at": -1,
+                    }
+                },
 
-    return list(
-        collection.aggregate([
-            # Сначала новые запросы
-            {
-                "$sort": {
-                    "created_at": -1,
-                }
-            },
+                # Объединяем одинаковые запросы
+                {
+                    "$group": {
+                        "_id": "$query",
+                        "search_type": {"$first": "$search_type"},
+                        "query": {"$first": "$query"},
+                        "created_at": {"$first": "$created_at"},
+                    }
+                },
 
-            # Объединяем одинаковые запросы
-            {
-                "$group": {
-                    "_id": "$query",
-                    "search_type": {"$first": "$search_type"},
-                    "query": {"$first": "$query"},
-                    "created_at": {"$first": "$created_at"},
-                }
-            },
+                # После группировки порядок не гарантирован,
+                # поэтому снова сортируем
+                {
+                    "$sort": {
+                        "created_at": -1,
+                    }
+                },
 
-            # После группировки порядок не гарантирован,
-            # поэтому снова сортируем
-            {
-                "$sort": {
-                    "created_at": -1,
-                }
-            },
+                # Берём пять последних уникальных запросов
+                {
+                    "$limit": limit,
+                },
 
-            # Берём пять последних уникальных запросов
-            {
-                "$limit": limit,
-            },
-
-            # Не возвращаем техническое поле _id
-            {
-                "$project": {
-                    "_id": 0,
-                    "search_type": 1,
-                    "query": 1,
-                    "created_at": 1,
-                }
-            },
-        ])
-    )
+                # Не возвращаем техническое поле _id
+                {
+                    "$project": {
+                        "_id": 0,
+                        "search_type": 1,
+                        "query": 1,
+                        "created_at": 1,
+                    }
+                },
+            ])
+        )
