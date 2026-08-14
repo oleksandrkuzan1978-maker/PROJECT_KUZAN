@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 DB_NAME = "ich_edit"
 COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
 MONGODB_URL = MONGODB_URL_WRITE
+MONGODB_URL_1 = MONGODB_URL_ATLAS
 
 
 # Ф-ция сохранения результата запроса в базе данных MongoDB
@@ -54,7 +55,7 @@ def save_query(*args) -> None:
                 "created_at": datetime.now()}
 
     try:
-
+        # Запись запроса в ich_edit
         with MongoClient(MONGODB_URL) as client:
 
             collection = client[DB_NAME][COLLECTION_NAME]
@@ -63,6 +64,15 @@ def save_query(*args) -> None:
 
             # Если сильно хочется проверить результат записи в коллекцию:
             # print("Inserted ID:", result.inserted_id)  # result = collection.insert_one(document)
+
+
+        # Запись запроса в ATLAS
+        with MongoClient(MONGODB_URL_1) as client:
+
+            collection = client[DB_NAME][COLLECTION_NAME]
+
+            collection.insert_one(document)
+
 
     except (ConnectionFailure, ServerSelectionTimeoutError) as error:
         raise ServiceUnavailableError("MongoDB") from error
@@ -138,7 +148,16 @@ def get_top_queries(collection, limit: int = 5):
                                 "query": "$query"},
                         "count": {"$sum": 1}}},
             {"$sort": {"count": -1}},
-            {"$limit": limit},]))
+            {"$limit": limit},
+            {
+                "$project": {
+                    "_id": 0,
+                    "search_type": "$_id.search_type",
+                    "query": "$_id.query",
+                    "count": 1,
+                }
+            }
+        ]))
 
 
 # вернуть последние 5 запросов.

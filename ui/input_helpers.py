@@ -11,18 +11,6 @@ MIN_YEAR = 1901
 MAX_YEAR = 2155
 
 
-# def input_command(prompt: str) -> str:
-#     """Запрашивает команду и обрабатывает команду выхода."""
-#
-#     value = input(prompt).strip().lower()
-#
-#     if value == "q":
-#         print(Fore.CYAN + "\nExit the program.\n")
-#         raise SystemExit()
-#
-#     return value
-
-
 def input_any(prompt: str) -> str:
     """Запрашивает непустой текст и обрабатывает команду вывода."""
     while True:
