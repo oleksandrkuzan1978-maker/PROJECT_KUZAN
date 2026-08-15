@@ -7,7 +7,7 @@
 """
 
 from datetime import datetime
-from pymongo import MongoClient  # pip install pymongo
+from pymongo import MongoClient
 from pymongo.errors import (PyMongoError, ConnectionFailure,)
 from utils.exceptions import ServiceUnavailableError
 from functools import wraps
@@ -23,6 +23,19 @@ COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
 MONGODB_URL = MONGODB_URL_WRITE
 MONGODB_URL_1 = MONGODB_URL_ATLAS
 
+client_write = MongoClient(MONGODB_URL_WRITE)
+client_atlas = MongoClient(MONGODB_URL_ATLAS)
+#client_read = MongoClient(MONGODB_URL_READ)
+
+collection_write = client_write[DB_NAME][COLLECTION_NAME]
+collection_atlas = client_atlas[DB_NAME][COLLECTION_NAME]
+#collection_read = client_read[DB_NAME][COLLECTION_NAME]
+
+def close_mongo_connections() -> None:
+    """Закрывает все клиенты MongoDB."""
+
+    client_write.close()
+    client_atlas.close()
 
 def mongo_errors(func):
     """ Декоратор. Перехватывает ошибки подключения к MongoDB. """
@@ -43,13 +56,13 @@ def mongo_errors(func):
     return wrapper
 
 
-def get_mongo_collection(mongodb_url):
-    """Создаёт клиент MongoDB и возвращает клиент и коллекцию."""
-
-    client = MongoClient(mongodb_url)
-    collection = client[DB_NAME][COLLECTION_NAME]
-
-    return client, collection
+# def get_mongo_collection(mongodb_url):
+#     """Создаёт клиент MongoDB и возвращает клиент и коллекцию."""
+#
+#     client = MongoClient(mongodb_url)
+#     collection = client[DB_NAME][COLLECTION_NAME]
+#
+#     return client, collection
 
 
 # Ф-ция сохранения результата SQL-запроса в базе данных MongoDB
@@ -74,22 +87,12 @@ def save_query(*args) -> None:
                 "created_at": datetime.now()}
 
 
-    # Запись запроса в основную MongoDB.
-    client, collection = get_mongo_collection(MONGODB_URL)
-
-    with client:
-
-        collection.insert_one(document)
+    # Запись запроса в основную MongoDB и в Atlas.
+    collection_write.insert_one(document)
+    collection_atlas.insert_one(document)
 
         # Если сильно хочется проверить результат записи в коллекцию:
-        # print("Inserted ID:", result.inserted_id)  # result = collection.insert_one(document)
-
-    # Запись этого же запроса в Atlas.
-    client, collection = get_mongo_collection(MONGODB_URL_1)
-
-    with client:
-
-        collection.insert_one(document)
+        # print("Inserted ID:", result.inserted_id)  # result = collection_write.insert_one(document)
 
     logger.info("Поисковый запрос сохранён в MongoDB")
 
@@ -102,25 +105,22 @@ def save_query(*args) -> None:
 def get_top_queries(limit: int = 5):
     """Возвращает наиболее популярные поисковые запросы."""
 
-    client, collection = get_mongo_collection(MONGODB_URL)
-
-    with client:
-        return list(
-            collection.aggregate([
-                {"$group": {"_id": {"search_type": "$search_type",
-                                    "query": "$query"},
-                            "count": {"$sum": 1}}},
-                {"$sort": {"count": -1}},
-                {"$limit": limit},
-                {
-                    "$project": {
-                        "_id": 0,
-                        "search_type": "$_id.search_type",
-                        "query": "$_id.query",
-                        "count": 1,
-                    }
+    return list(
+        collection_write.aggregate([
+            {"$group": {"_id": {"search_type": "$search_type",
+                                "query": "$query"},
+                        "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": limit},
+            {
+                "$project": {
+                    "_id": 0,
+                    "search_type": "$_id.search_type",
+                    "query": "$_id.query",
+                    "count": 1,
                 }
-            ]))
+            }
+        ]))
 
 
 # вернуть последние 5 запросов.
@@ -128,50 +128,46 @@ def get_top_queries(limit: int = 5):
 def get_last_queries(limit: int = 5):
     """Возвращает последние уникальные поисковые запросы."""
 
-    client, collection = get_mongo_collection(MONGODB_URL)
+    return list(
+        collection_write.aggregate([
+            # Сначала новые запросы
+            {
+                "$sort": {
+                    "created_at": -1,
+                }
+            },
 
-    with client:
+            # Объединяем одинаковые запросы
+            {
+                "$group": {
+                    "_id": "$query",
+                    "search_type": {"$first": "$search_type"},
+                    "query": {"$first": "$query"},
+                    "created_at": {"$first": "$created_at"},
+                }
+            },
 
-        return list(
-            collection.aggregate([
-                # Сначала новые запросы
-                {
-                    "$sort": {
-                        "created_at": -1,
-                    }
-                },
+            # После группировки порядок не гарантирован,
+            # поэтому снова сортируем
+            {
+                "$sort": {
+                    "created_at": -1,
+                }
+            },
 
-                # Объединяем одинаковые запросы
-                {
-                    "$group": {
-                        "_id": "$query",
-                        "search_type": {"$first": "$search_type"},
-                        "query": {"$first": "$query"},
-                        "created_at": {"$first": "$created_at"},
-                    }
-                },
+            # Берём пять последних уникальных запросов
+            {
+                "$limit": limit,
+            },
 
-                # После группировки порядок не гарантирован,
-                # поэтому снова сортируем
-                {
-                    "$sort": {
-                        "created_at": -1,
-                    }
-                },
-
-                # Берём пять последних уникальных запросов
-                {
-                    "$limit": limit,
-                },
-
-                # Не возвращаем техническое поле _id
-                {
-                    "$project": {
-                        "_id": 0,
-                        "search_type": 1,
-                        "query": 1,
-                        "created_at": 1,
-                    }
-                },
-            ])
-        )
+            # Не возвращаем техническое поле _id
+            {
+                "$project": {
+                    "_id": 0,
+                    "search_type": 1,
+                    "query": 1,
+                    "created_at": 1,
+                }
+            },
+        ])
+    )

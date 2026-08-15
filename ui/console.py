@@ -107,15 +107,16 @@ q - 🚪   Exit """
                 return
 
         except ServiceUnavailableError as error:
-            logger.exception(
-                "Внешний сервис недоступен: %s",
-                error.service,
-            )
-            print(
-                Fore.RED
-                + f"{error.service} is unavailable. Check the connection "
-                  "and try again."
-            )
+            if error.service != "MongoDB":
+                logger.exception(
+                    "Внешний сервис недоступен: %s",
+                    error.service,
+                )
+                print(
+                    Fore.RED
+                    + f"{error.service} is unavailable. Check the connection "
+                      "and try again."
+                )
 
         except mysql.connector.ProgrammingError:
             raise
@@ -128,7 +129,6 @@ q - 🚪   Exit """
             )
 
         except PyMongoError:
-            logger.exception("Ошибка чтения MongoDB")
             print(
                 Fore.RED
                 + "Failed to retrieve search history from MongoDB."
@@ -234,7 +234,7 @@ def display_genres(
     print(tabulate(rows, headers=headers, tablefmt="psql"))
 
     print(
-        "\nДоступный диапазон годов: "
+        "\nAvailable year range: "
         + Fore.YELLOW
         + f"{min_year}–{max_year}"
         + Style.RESET_ALL
@@ -278,7 +278,7 @@ def handle_genre_search() -> str | None:
     )
 
     genre_id, genre = select_genre(rows)
-    year_from, year_to = input_year_range()
+    year_from, year_to = input_year_range(genre_id)
 
     while True:
         total = count_films_by_genre(
@@ -344,7 +344,7 @@ def handle_genre_search() -> str | None:
             )
 
             if command == "y":
-                year_from, year_to = input_year_range()
+                year_from, year_to = input_year_range(genre_id)
                 break
 
             if command == "g":
@@ -367,7 +367,7 @@ def handle_genre_search() -> str | None:
                 )
 
                 genre_id, genre = select_genre(rows)
-                year_from, year_to = input_year_range()
+                year_from, year_to = input_year_range(genre_id)
                 break
 
             if command == "m":

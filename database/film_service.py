@@ -17,6 +17,7 @@ from database.queries import (
     GET_BY_NAME,
     GET_GENRES,
     GET_RELEASE_YEAR_RANGE,
+    GET_RELEASE_YEAR_CATEGORY,
     NAME_TOTAL,
 )
 
@@ -122,4 +123,13 @@ def get_release_year_range() -> tuple[int, int]:
     min_year, max_year = rows[0]
 
     return min_year, max_year
+
+
+def get_release_year_category(genre_id: int) -> tuple[int, int]:
+    """Возвращает минимальный и максимальный годы выпуска фильмов по жанру."""
+
+    rows, _ = _execute(GET_RELEASE_YEAR_CATEGORY, genre_id)
+    year_min, year_max = rows[0]
+
+    return year_min, year_max
 

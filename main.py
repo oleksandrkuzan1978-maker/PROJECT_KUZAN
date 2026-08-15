@@ -15,6 +15,7 @@ setup_logging()
 from ui.console import get_user_input
 from ui.pagination import clear_screen
 from utils.exceptions import ServiceUnavailableError
+from database.mongo_history_write import close_mongo_connections
 from config.local_settings import dbconfig
 
 logger = logging.getLogger(__name__)  # Создаю логгер с именем "main".
@@ -70,6 +71,9 @@ def main() -> None:
         sys.exit(1)
     else:
         logger.info("Завершение приложения")
+
+    finally:
+        close_mongo_connections()
 
 
 if __name__ == "__main__":

@@ -54,3 +54,10 @@ GET_RELEASE_YEAR_RANGE = """
     SELECT MIN(release_year), MAX(release_year)
     FROM film
 """
+
+GET_RELEASE_YEAR_CATEGORY = """
+    SELECT MIN(release_year), MAX(release_year)
+    FROM film AS f
+    JOIN film_category AS fc
+    ON f.film_id = fc.film_id
+    WHERE fc.category_id = %s"""

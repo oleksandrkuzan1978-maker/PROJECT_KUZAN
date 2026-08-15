@@ -6,6 +6,7 @@
 """
 
 from colorama import Fore, Style
+from database.film_service import get_release_year_category
 
 MIN_YEAR = 1901
 MAX_YEAR = 2155
@@ -36,8 +37,13 @@ def input_number(message: str) -> int:
         print(Fore.RED + "\nEnter a number.")
 
 
-def input_year_range() -> tuple[int, int] | None:
+def input_year_range(genre_id) -> tuple[int, int] | None:
     """Запрашивает и проверяет диапазон годов."""
+    year_min, year_max = get_release_year_category(genre_id)
+    print(f"\nYear range for the selected genre: " + Fore.YELLOW +
+          f"{year_min}-{year_max}\n"
+          + Style.RESET_ALL + Fore.WHITE)
+
     while True:
         year_from = input_number("\nEnter the start year of the range (4 digits): ")
         if len(str(year_from)) != 4:
