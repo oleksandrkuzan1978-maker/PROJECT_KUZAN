@@ -15,8 +15,9 @@ setup_logging()
 from ui.console import get_user_input
 from ui.pagination import clear_screen
 from utils.exceptions import ServiceUnavailableError
-from database.mongo_history_write import close_mongo_connections
+from database.mongo_history_write import (close_mongo_connections, open_mongo_connections,)
 from config.local_settings import dbconfig
+
 
 logger = logging.getLogger(__name__)  # Создаю логгер с именем "main".
 
@@ -30,7 +31,7 @@ def main() -> None:
     clear_screen()
 
     try:
-
+        open_mongo_connections()
         get_user_input()
 
         logger.info("=== Все запросы выполнены успешно ===")

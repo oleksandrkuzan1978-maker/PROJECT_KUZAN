@@ -8,10 +8,11 @@
 
 from datetime import datetime
 from pymongo import MongoClient
+from pymongo.collection import Collection
 from pymongo.errors import (PyMongoError, ConnectionFailure,)
 from utils.exceptions import ServiceUnavailableError
 from functools import wraps
-from config.local_settings import (MONGODB_URL_ATLAS, MONGODB_URL_WRITE, MONGODB_URL_READ)
+from config.local_settings import (MONGODB_URL_ATLAS, MONGODB_URL_WRITE,)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,22 +21,13 @@ logger = logging.getLogger(__name__)
 
 DB_NAME = "ich_edit"
 COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
-MONGODB_URL = MONGODB_URL_WRITE
-MONGODB_URL_1 = MONGODB_URL_ATLAS
 
-client_write = MongoClient(MONGODB_URL_WRITE)
-client_atlas = MongoClient(MONGODB_URL_ATLAS)
-#client_read = MongoClient(MONGODB_URL_READ)
+client_write: MongoClient | None = None
+client_atlas: MongoClient | None = None
 
-collection_write = client_write[DB_NAME][COLLECTION_NAME]
-collection_atlas = client_atlas[DB_NAME][COLLECTION_NAME]
-#collection_read = client_read[DB_NAME][COLLECTION_NAME]
+collection_write: Collection | None = None
+collection_atlas: Collection | None = None
 
-def close_mongo_connections() -> None:
-    """Закрывает все клиенты MongoDB."""
-
-    client_write.close()
-    client_atlas.close()
 
 def mongo_errors(func):
     """ Декоратор. Перехватывает ошибки подключения к MongoDB. """
@@ -56,13 +48,39 @@ def mongo_errors(func):
     return wrapper
 
 
-# def get_mongo_collection(mongodb_url):
-#     """Создаёт клиент MongoDB и возвращает клиент и коллекцию."""
-#
-#     client = MongoClient(mongodb_url)
-#     collection = client[DB_NAME][COLLECTION_NAME]
-#
-#     return client, collection
+@mongo_errors
+def open_mongo_connections() -> None:
+    """Создаёт клиенты и коллекции MongoDB."""
+
+    global client_write
+    global client_atlas
+    global collection_write
+    global collection_atlas
+
+    client_write = MongoClient(
+        MONGODB_URL_WRITE,
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=5000,
+    )
+
+    client_atlas = MongoClient(
+        MONGODB_URL_ATLAS,
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=5000,
+    )
+
+    collection_write = client_write[DB_NAME][COLLECTION_NAME]
+    collection_atlas = client_atlas[DB_NAME][COLLECTION_NAME]
+
+
+def close_mongo_connections() -> None:
+    """Закрывает все клиенты MongoDB."""
+
+    if client_write is not None:
+        client_write.close()
+
+    if client_atlas is not None:
+        client_atlas.close()
 
 
 # Ф-ция сохранения результата SQL-запроса в базе данных MongoDB
@@ -79,6 +97,10 @@ def save_query(*args) -> None:
         total:
             Количество найденных по запросу фильмов.
     """
+
+    # if collection_write is None or collection_atlas is None:
+    #     raise RuntimeError("Подключения к MongoDB ещё не открыты")
+
     search_type, query, total = args
 
     document = {"search_type": search_type,
@@ -100,10 +122,12 @@ def save_query(*args) -> None:
 """************************ Возвращаем запросы ***************************"""
 
 
-# вернуть 5 самых популярных запросов.
 @mongo_errors
 def get_top_queries(limit: int = 5):
     """Возвращает наиболее популярные поисковые запросы."""
+
+    # if collection_write is None or collection_atlas is None:
+    #     raise RuntimeError("Подключения к MongoDB ещё не открыты")
 
     return list(
         collection_write.aggregate([
@@ -123,10 +147,12 @@ def get_top_queries(limit: int = 5):
         ]))
 
 
-# вернуть последние 5 запросов.
 @mongo_errors
 def get_last_queries(limit: int = 5):
     """Возвращает последние уникальные поисковые запросы."""
+
+    # if collection_write is None or collection_atlas is None:
+    #     raise RuntimeError("Подключения к MongoDB ещё не открыты")
 
     return list(
         collection_write.aggregate([
