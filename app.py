@@ -1,6 +1,7 @@
 """Веб-интерфейс приложения поиска фильмов на FastAPI."""
 # Запуск для разработки: python -m uvicorn app:app --reload
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import mysql.connector
@@ -19,8 +20,10 @@ from database.film_service import (
     get_release_year_range,
 )
 from database.mongo_history_write import (
+    close_mongo_connections,
     get_last_queries,
     get_top_queries,
+    open_mongo_connections,
     save_query,
 )
 from utils.exceptions import ServiceUnavailableError
@@ -32,9 +35,23 @@ PAGE_SIZE = 10
 
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Управляет клиентами MongoDB в течение работы веб-приложения."""
+
+    open_mongo_connections()
+
+    try:
+        yield
+    finally:
+        close_mongo_connections()
+
+
 app = FastAPI(
     title="Sakila Movie Search",
     description="Searching for films in the Sakila database",
+    lifespan=lifespan,
 )
 
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
@@ -421,8 +438,8 @@ def popular_queries(request: Request):
 
     popular = [
         {
-            "search_type": document["_id"]["search_type"],
-            "query": document["_id"]["query"],
+            "search_type": document["search_type"],
+            "query": document["query"],
             "count": document["count"],
         }
         for document in queries
