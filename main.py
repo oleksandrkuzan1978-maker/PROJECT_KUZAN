@@ -13,7 +13,7 @@ from utils.logger_config import setup_logging
 
 setup_logging()
 from ui.console import get_user_input
-from ui.pagination import clear_screen
+from ui.input_helpers import clear_screen
 from utils.exceptions import ServiceUnavailableError
 from database.mongo_history_write import (close_mongo_connections, open_mongo_connections,)
 from config.local_settings import dbconfig

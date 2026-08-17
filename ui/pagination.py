@@ -9,11 +9,11 @@
 import logging
 from typing import Any, TypeAlias
 from collections.abc import Callable
-from functools import lru_cache
 
 from colorama import Fore, Style
 from tabulate import tabulate
-from ui.input_helpers import input_any
+
+from ui.input_helpers import input_any, clear_screen
 from utils.logger_config import funclog
 
 QueryResult: TypeAlias = tuple[
@@ -26,12 +26,6 @@ PageFetcher: TypeAlias = Callable[..., QueryResult]
 logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 10
-
-
-def clear_screen() -> None:
-    """Очищает экран терминала."""
-
-    print("\033[2J\033[3J\033[H", end="", flush=True)
 
 
 @funclog

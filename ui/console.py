@@ -29,10 +29,10 @@ from database.film_service import (
 from database.mongo_history_write import save_query
 from ui.history_view import output_last_queries, output_top_queries
 from ui.input_helpers import (
-    # input_command,
     input_any,
     input_year_range,
     select_genre,
+    clear_screen,
 )
 from ui.pagination import clear_screen, show_paginated_results
 from utils.exceptions import ServiceUnavailableError
@@ -88,7 +88,7 @@ q - 🚪   Exit """
             + Style.RESET_ALL
             + Fore.WHITE
         )
-        clear_screen()  # Очистка экрана
+        clear_screen()
         print()
         action = actions.get(choice) # Выбор ф-ции из actions по команде пользователя
 
@@ -278,7 +278,8 @@ def handle_genre_search() -> str | None:
     )
 
     genre_id, genre = select_genre(rows)
-    year_from, year_to = input_year_range(genre_id)
+    clear_screen()
+    year_from, year_to = input_year_range(genre_id, genre)
 
     while True:
         total = count_films_by_genre(
@@ -343,8 +344,10 @@ def handle_genre_search() -> str | None:
                 + Fore.WHITE
             )
 
+            clear_screen()
+
             if command == "y":
-                year_from, year_to = input_year_range(genre_id)
+                year_from, year_to = input_year_range(genre_id, genre)
                 break
 
             if command == "g":
@@ -367,7 +370,7 @@ def handle_genre_search() -> str | None:
                 )
 
                 genre_id, genre = select_genre(rows)
-                year_from, year_to = input_year_range(genre_id)
+                year_from, year_to = input_year_range(genre_id, genre)
                 break
 
             if command == "m":

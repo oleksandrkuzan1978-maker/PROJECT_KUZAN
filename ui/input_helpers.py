@@ -37,11 +37,15 @@ def input_number(message: str) -> int:
         print(Fore.RED + "\nEnter a number.")
 
 
-def input_year_range(genre_id) -> tuple[int, int] | None:
+def input_year_range(genre_id, genre) -> tuple[int, int] | None:
     """Запрашивает и проверяет диапазон годов."""
+
+    print(Fore.CYAN + "\nGenre:" + Style.RESET_ALL + Fore.WHITE, genre)
+
     year_min, year_max = get_release_year_category(genre_id)
+
     print(f"\nYear range for the selected genre: " + Fore.YELLOW +
-          f"{year_min}-{year_max}\n"
+          f"{year_min}-{year_max}"
           + Style.RESET_ALL + Fore.WHITE)
 
     while True:
@@ -51,12 +55,13 @@ def input_year_range(genre_id) -> tuple[int, int] | None:
             continue
         year_to = input_number("Enter the end year of the range (4 digits): ")
 
-        if year_from < MIN_YEAR:
-            year_from = MIN_YEAR
-        if year_to > MAX_YEAR:
-            year_to = MAX_YEAR
-
         if len(str(year_to)) == 4 and year_from <= year_to:
+
+            if year_from < MIN_YEAR:
+                year_from = MIN_YEAR
+            if year_to > MAX_YEAR:
+                year_to = MAX_YEAR
+
             return year_from, year_to
 
         else:
@@ -90,3 +95,8 @@ def select_genre(rows: list[tuple], ) -> tuple[int, str]:
             Fore.RED
             + "\nThe selected genre is not in the list.\n"
         )
+
+def clear_screen() -> None:
+    """Очищает экран терминала."""
+
+    print("\033[2J\033[3J\033[H", end="", flush=True)

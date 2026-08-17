@@ -35,7 +35,7 @@ GENRES_TOTAL = """
 
 # ЗАПРОС из БД по жанрам и годам
 GET_BY_GENRES_AND_YEARS = """
-                          SELECT title, description, release_year, category_id
+                          SELECT title, description, release_year
                           FROM film AS f
                                    JOIN film_category AS fc USING (film_id)
                           WHERE category_id = %s
