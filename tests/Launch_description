@@ -1,0 +1,49 @@
+Launch description
+
+Активирует виртуальное окружение проекта.
+.venv\Scripts\Activate.ps1
+
+Запускает все тесты из папки tests с подробным выводом.
+python -m pytest tests -v
+
+Запускает только тесты веб-приложения.
+python -m pytest tests/test_web.py -v
+
+Запускает изолированные тесты обработки ошибок MySQL и MongoDB без реальных подключений.
+python -m pytest tests/test_connection.py -v
+
+Запускает один конкретный тест test_popular_queries_page.
+python -m pytest tests/test_web.py::test_popular_queries_page -v
+
+
+
+
+
+Разрешает запуск интеграционных тестов, использующих реальную MongoDB.
+$env:RUN_MONGO_TESTS = "1"
+
+Запускает реальные проверки подключения и записи в MongoDB.
+Предварительно должна быть установлена переменная RUN_MONGO_TESTS.
+python -m pytest tests/test_mongo.py -v
+
+Удаляет переменную RUN_MONGO_TESTS, снова отключая реальные MongoDB-тесты.
+Remove-Item Env:RUN_MONGO_TESTS
+
+
+
+
+
+Запускает все тесты и показывает вывод print() непосредственно в терминале.
+python -m pytest tests -v -s
+
+Запускает тесты и прекращает выполнение после первой ошибки.
+python -m pytest tests -v -x
+
+Запускает все тесты с кратким выводом результата.
+python -m pytest tests -q
+
+Запускает все тесты и показывает сокращённые трассировки ошибок.
+python -m pytest tests -v --tb=short
+
+Показывает список обнаруженных тестов, не выполняя их.
+python -m pytest tests --collect-only

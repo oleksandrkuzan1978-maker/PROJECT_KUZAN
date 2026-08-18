@@ -35,7 +35,7 @@ PAGE_SIZE = 10
 
 logger = logging.getLogger(__name__)
 
-
+# Асинхронная ф-ция для управления жизненным циклом приложения
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Управляет клиентами MongoDB в течение работы веб-приложения."""
@@ -48,12 +48,15 @@ async def lifespan(_app: FastAPI):
         close_mongo_connections()
 
 
+# Объект приложения
 app = FastAPI(
     title="Sakila Movie Search",
     description="Searching for films in the Sakila database",
     lifespan=lifespan,
 )
 
+# Cоздание объекта templates (шаблонизатора), через который Python-код может
+# передавать html-шаблонам в директории TEMPLATES_DIR данные для формирования HTML.
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
@@ -77,7 +80,7 @@ def render_error_page(
         status_code=status_code,
     )
 
-
+# Благодаря декоратору app.exception_handler FastAPI автоматически использует ф-цию при возникновении ошибки
 @app.exception_handler(HTTPException)
 def handle_http_exception(
     request: Request,

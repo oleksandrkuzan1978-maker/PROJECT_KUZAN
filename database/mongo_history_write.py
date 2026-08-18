@@ -23,9 +23,9 @@ DB_NAME = "ich_edit"
 COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
 
 client_write: MongoClient | None = None
-client_atlas: MongoClient | None = None
-
 collection_write: Collection | None = None
+
+client_atlas: MongoClient | None = None
 collection_atlas: Collection | None = None
 
 
@@ -53,8 +53,8 @@ def open_mongo_connections() -> None:
     """Создаёт клиенты и коллекции MongoDB."""
 
     global client_write
-    global client_atlas
     global collection_write
+    global client_atlas
     global collection_atlas
 
     client_write = MongoClient(

@@ -1,17 +1,45 @@
 """Тесты основных маршрутов FastAPI."""
 # Запуск теста: python -m pytest tests/test_web.py -v -W default
 import re
+from collections.abc import Iterator
 from datetime import datetime
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
+from pymongo.errors import PyMongoError
 
-from app import app
+from app import app, save_query_safely
+from utils.exceptions import ServiceUnavailableError
 
-client = TestClient(app)
+
+@pytest.fixture
+def client() -> Iterator[TestClient]:
+    """Создаёт тестовый клиент без реальных подключений к MongoDB."""
+
+    with (
+        patch("app.open_mongo_connections"),
+        patch("app.close_mongo_connections"),
+        TestClient(app) as test_client,
+    ):
+        yield test_client
 
 
-def test_index_displays_genres_and_years() -> None:
+def test_mongo_connections_follow_application_lifespan() -> None:
+    """FastAPI открывает и закрывает MongoDB вместе с приложением."""
+
+    with (
+        patch("app.open_mongo_connections") as open_mock,
+        patch("app.close_mongo_connections") as close_mock,
+        TestClient(app),
+    ):
+        open_mock.assert_called_once_with()
+        close_mock.assert_not_called()
+
+    close_mock.assert_called_once_with()
+
+
+def test_index_displays_genres_and_years(client: TestClient) -> None:
     """Главная страница получает жанры и диапазон годов."""
 
     with (
@@ -36,7 +64,7 @@ def test_index_displays_genres_and_years() -> None:
     assert "2026" in response.text
 
 
-def test_search_by_name_returns_films() -> None:
+def test_search_by_name_returns_films(client: TestClient) -> None:
     """Поиск по названию отображает полученные фильмы."""
 
     rows = [
@@ -82,7 +110,9 @@ def test_search_by_name_returns_films() -> None:
     )
 
 
-def test_genre_years_are_limited_to_database_range() -> None:
+def test_genre_years_are_limited_to_database_range(
+    client: TestClient,
+) -> None:
     """Внешние годы автоматически ограничиваются диапазоном БД."""
 
     with (
@@ -151,7 +181,7 @@ def test_genre_years_are_limited_to_database_range() -> None:
     )
 
 
-def test_reversed_year_range_returns_error() -> None:
+def test_reversed_year_range_returns_error(client: TestClient) -> None:
     """Начальный год не может быть больше конечного."""
 
     response = client.get(
@@ -168,7 +198,7 @@ def test_reversed_year_range_returns_error() -> None:
     assert "Начальный год" in response.text
 
 
-def test_year_must_contain_four_digits() -> None:
+def test_year_must_contain_four_digits(client: TestClient) -> None:
     """Год должен состоять ровно из четырёх цифр."""
 
     response = client.get(
@@ -184,7 +214,7 @@ def test_year_must_contain_four_digits() -> None:
     assert response.status_code == 400
     assert "четырёх цифр" in response.text
 
-def test_second_page_uses_correct_offset() -> None:
+def test_second_page_uses_correct_offset(client: TestClient) -> None:
     """Вторая страница использует LIMIT 10 и OFFSET 10."""
 
     with (
@@ -223,7 +253,9 @@ def test_second_page_uses_correct_offset() -> None:
     save_mock.assert_not_called()
 
 
-def test_empty_name_search_is_saved_on_first_page() -> None:
+def test_search_without_results_is_saved_on_first_page(
+    client: TestClient,
+) -> None:
     """Поиск без результатов также сохраняется в истории."""
 
     with (
@@ -252,24 +284,20 @@ def test_empty_name_search_is_saved_on_first_page() -> None:
     )
 
 
-def test_popular_queries_page() -> None:
+def test_popular_queries_page(client: TestClient) -> None:
     """Страница популярных запросов отображает данные MongoDB."""
 
     documents = [
         {
-            "_id": {
-                "search_type": "by_name",
-                "query": {"keyword": "academy"},
-            },
+            "search_type": "by_name",
+            "query": {"keyword": "academy"},
             "count": 7,
         },
         {
-            "_id": {
-                "search_type": "by_genre_years",
-                "query": {
-                    "genre": "Action",
-                    "years": "2000-2006",
-                },
+            "search_type": "by_genre_years",
+            "query": {
+                "genre": "Action",
+                "years": "2000-2006",
             },
             "count": 3,
         },
@@ -290,7 +318,7 @@ def test_popular_queries_page() -> None:
     ) is not None
 
 
-def test_recent_queries_page() -> None:
+def test_recent_queries_page(client: TestClient) -> None:
     """Страница последних запросов форматирует дату выполнения."""
 
     documents = [
@@ -317,3 +345,83 @@ def test_recent_queries_page() -> None:
     assert response.status_code == 200
     assert "academy" in response.text
     assert "02.08.2026 14:30:15" in response.text
+
+
+def test_unknown_search_type_returns_error(client: TestClient) -> None:
+    """Неизвестный вид поиска возвращает HTTP 400."""
+
+    response = client.get(
+        "/search",
+        params={"search_type": "unknown"},
+    )
+
+    assert response.status_code == 400
+    assert "Неизвестный вид поиска" in response.text
+
+
+def test_missing_result_page_returns_not_found(
+    client: TestClient,
+) -> None:
+    """Страница за пределами результата возвращает HTTP 404."""
+
+    with (
+        patch("app.count_films_by_name", return_value=1),
+        patch(
+            "app.get_films_by_name",
+            return_value=([], ["title", "description", "release_year"]),
+        ),
+        patch("app.save_query_safely") as save_mock,
+    ):
+        response = client.get(
+            "/search",
+            params={
+                "search_type": "name",
+                "title": "academy",
+                "page": 2,
+            },
+        )
+
+    assert response.status_code == 404
+    save_mock.assert_not_called()
+
+
+def test_service_unavailable_returns_503(client: TestClient) -> None:
+    """Недоступность MySQL отображается как HTTP 503."""
+
+    with patch(
+        "app.get_genres",
+        side_effect=ServiceUnavailableError("MySQL"),
+    ):
+        response = client.get("/")
+
+    assert response.status_code == 503
+    assert "MySQL" in response.text
+
+
+def test_mongodb_read_error_returns_503(client: TestClient) -> None:
+    """Ошибка чтения MongoDB отображается как HTTP 503."""
+
+    with patch(
+        "app.get_top_queries",
+        side_effect=PyMongoError("MongoDB error"),
+    ):
+        response = client.get("/popular")
+
+    assert response.status_code == 503
+    assert "История временно недоступна" in response.text
+
+
+def test_history_write_error_does_not_interrupt_search() -> None:
+    """Ошибка MongoDB при записи истории подавляется веб-обёрткой."""
+
+    with patch(
+        "app.save_query",
+        side_effect=ServiceUnavailableError("MongoDB"),
+    ):
+        result = save_query_safely(
+            "by_name",
+            {"keyword": "academy"},
+            1,
+        )
+
+    assert result is None
