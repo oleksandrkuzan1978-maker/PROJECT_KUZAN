@@ -279,7 +279,7 @@ def handle_genre_search() -> str | None:
     )
 
     genre_id, genre = select_genre(rows)
-    year_from, year_to = input_year_range(genre_id)
+    year_from, year_to = input_year_range(genre, genre_id)
 
     while True:
         genre_min_year, genre_max_year = (
@@ -366,7 +366,7 @@ def handle_genre_search() -> str | None:
             )
 
             if command == "y":
-                year_from, year_to = input_year_range(genre_id)
+                year_from, year_to = input_year_range(genre, genre_id)
                 break
 
             if command == "g":
@@ -389,7 +389,7 @@ def handle_genre_search() -> str | None:
                 )
 
                 genre_id, genre = select_genre(rows)
-                year_from, year_to = input_year_range(genre_id)
+                year_from, year_to = input_year_range(genre, genre_id)
                 break
 
             if command == "m":

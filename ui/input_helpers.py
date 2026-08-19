@@ -33,8 +33,9 @@ def input_number(message: str) -> int:
         print(Fore.RED + "\nEnter a number.")
 
 
-def input_year_range(genre_id: int) -> tuple[int, int] | None:
+def input_year_range(genre: str, genre_id: int) -> tuple[int, int] | None:
     """Запрашивает и проверяет диапазон годов."""
+    print(Fore.CYAN + "\nGenre:" + Style.RESET_ALL + Fore.WHITE, genre)
     year_min, year_max = get_release_year_category(genre_id)
     print(f"\nYear range for the selected genre: " + Fore.YELLOW +
           f"{year_min}-{year_max}\n"
