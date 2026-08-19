@@ -21,11 +21,13 @@ from database.film_service import (
     get_release_year_category,
     get_release_year_range,
 )
-from database.mongo_history_write import (
+from database.mongo_connection import (
     close_mongo_connections,
+    open_mongo_connections,
+)
+from database.mongo_history_write import (
     get_last_queries,
     get_top_queries,
-    open_mongo_connections,
     save_query,
 )
 from utils.exceptions import ServiceUnavailableError
@@ -42,9 +44,8 @@ logger = logging.getLogger(__name__)
 async def lifespan(_app: FastAPI):
     """Управляет клиентами MongoDB в течение работы веб-приложения."""
 
-    open_mongo_connections()
-
     try:
+        open_mongo_connections()
         yield
     finally:
         close_mongo_connections()

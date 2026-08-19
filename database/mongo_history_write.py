@@ -6,81 +6,16 @@
 Ошибки MongoDB передаются вызывающему уровню для обработки.
 """
 
-from datetime import datetime
-from pymongo import MongoClient
-from pymongo.collection import Collection
-from pymongo.errors import (PyMongoError, ConnectionFailure,)
-from utils.exceptions import ServiceUnavailableError
-from functools import wraps
-from config.local_settings import (MONGODB_URL_ATLAS, MONGODB_URL_WRITE,)
 import logging
+from datetime import datetime
+
+from database.mongo_connection import (
+    get_read_collection,
+    get_write_collections,
+    mongo_errors,
+)
 
 logger = logging.getLogger(__name__)
-
-"""*********************** Создаем коллекцию ***************************"""
-
-DB_NAME = "ich_edit"
-COLLECTION_NAME = "final_project_060326_ptm_oleksandr_kuzan"
-
-client_write: MongoClient | None = None
-collection_write: Collection | None = None
-
-client_atlas: MongoClient | None = None
-collection_atlas: Collection | None = None
-
-
-def mongo_errors(func):
-    """ Декоратор. Перехватывает ошибки подключения к MongoDB. """
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-
-        except ConnectionFailure as error:
-            logger.exception("Не удалось подключиться к MongoDB")
-            raise ServiceUnavailableError("MongoDB") from error
-
-        except PyMongoError:
-            logger.exception("Ошибка при выполнении операции в MongoDB")
-            raise
-
-    return wrapper
-
-
-@mongo_errors
-def open_mongo_connections() -> None:
-    """Создаёт клиенты и коллекции MongoDB."""
-
-    global client_write
-    global collection_write
-    global client_atlas
-    global collection_atlas
-
-    client_write = MongoClient(
-        MONGODB_URL_WRITE,
-        serverSelectionTimeoutMS=5000,
-        connectTimeoutMS=5000,
-    )
-
-    client_atlas = MongoClient(
-        MONGODB_URL_ATLAS,
-        serverSelectionTimeoutMS=5000,
-        connectTimeoutMS=5000,
-    )
-
-    collection_write = client_write[DB_NAME][COLLECTION_NAME]
-    collection_atlas = client_atlas[DB_NAME][COLLECTION_NAME]
-
-
-def close_mongo_connections() -> None:
-    """Закрывает все клиенты MongoDB."""
-
-    if client_write is not None:
-        client_write.close()
-
-    if client_atlas is not None:
-        client_atlas.close()
 
 
 # Ф-ция сохранения результата SQL-запроса в базе данных MongoDB
@@ -98,25 +33,24 @@ def save_query(*args) -> None:
             Количество найденных по запросу фильмов.
     """
 
-    # if collection_write is None or collection_atlas is None:
-    #     raise RuntimeError("Подключения к MongoDB ещё не открыты")
-
     search_type, query, total = args
 
-    document = {"search_type": search_type,
-                "query": query,
-                "results_count": total,
-                "created_at": datetime.now()}
+    document = {
+        "search_type": search_type,
+        "query": query,
+        "results_count": total,
+        "created_at": datetime.now(),
+    }
 
+    collections = get_write_collections()
 
-    # Запись запроса в основную MongoDB и в Atlas.
-    collection_write.insert_one(document)
-    collection_atlas.insert_one(document)
+    for collection in collections:
+        collection.insert_one(document)
 
-        # Если сильно хочется проверить результат записи в коллекцию:
-        # print("Inserted ID:", result.inserted_id)  # result = collection_write.insert_one(document)
-
-    logger.info("Поисковый запрос сохранён в MongoDB")
+    if collections:
+        logger.info("Поисковый запрос сохранён в MongoDB")
+    else:
+        logger.info("История поиска отключена в настройках")
 
 
 """************************ Возвращаем запросы ***************************"""
@@ -126,11 +60,13 @@ def save_query(*args) -> None:
 def get_top_queries(limit: int = 5):
     """Возвращает наиболее популярные поисковые запросы."""
 
-    # if collection_write is None or collection_atlas is None:
-    #     raise RuntimeError("Подключения к MongoDB ещё не открыты")
+    collection = get_read_collection()
+
+    if collection is None:
+        return []
 
     return list(
-        collection_write.aggregate([
+        collection.aggregate([
             {"$group": {"_id": {"search_type": "$search_type",
                                 "query": "$query"},
                         "count": {"$sum": 1}}},
@@ -151,11 +87,13 @@ def get_top_queries(limit: int = 5):
 def get_last_queries(limit: int = 5):
     """Возвращает последние уникальные поисковые запросы."""
 
-    # if collection_write is None or collection_atlas is None:
-    #     raise RuntimeError("Подключения к MongoDB ещё не открыты")
+    collection = get_read_collection()
+
+    if collection is None:
+        return []
 
     return list(
-        collection_write.aggregate([
+        collection.aggregate([
             # Сначала новые запросы
             {
                 "$sort": {
