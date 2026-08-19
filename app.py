@@ -363,15 +363,15 @@ def search(
                 detail="Для выбранного жанра фильмы не найдены.",
             )
 
-        search_year_from = min(
-            max(requested_year_from, min_year),
-            max_year,
-        )
-
-        search_year_to = min(
-            max(requested_year_to, min_year),
-            max_year,
-        )
+        if (
+            requested_year_from < min_year
+            or requested_year_to > max_year
+        ):
+            search_year_from = min_year
+            search_year_to = max_year
+        else:
+            search_year_from = requested_year_from
+            search_year_to = requested_year_to
 
         genre_rows, _ = get_genres()
         genres = dict(genre_rows)

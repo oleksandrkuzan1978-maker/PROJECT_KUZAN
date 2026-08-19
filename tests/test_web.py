@@ -150,8 +150,8 @@ def test_genre_search_uses_available_years_and_saves_requested_years(
             params={
                 "search_type": "genre_years",
                 "genre_id": 1,
-                "year_from": "1234",
-                "year_to": "2345",
+                "year_from": "1980",
+                "year_to": "2000",
                 "page": 1,
             },
         )
@@ -160,10 +160,10 @@ def test_genre_search_uses_available_years_and_saves_requested_years(
     assert 'name="genre_id"' in response.text
     assert 'value="1"' in response.text
     assert 'name="year_from"' in response.text
-    assert 'value="1234"' in response.text
+    assert 'value="1980"' in response.text
     assert 'name="year_to"' in response.text
-    assert 'value="2345"' in response.text
-    assert "годы: 1234-2345" in response.text
+    assert 'value="2000"' in response.text
+    assert "годы: 1980-2000" in response.text
 
     count_mock.assert_called_once_with(
         1,
@@ -182,7 +182,7 @@ def test_genre_search_uses_available_years_and_saves_requested_years(
         "by_genre_years",
         {
             "genre": "Action",
-            "years": "1234-2345",
+            "years": "1980-2000",
         },
         1,
     )

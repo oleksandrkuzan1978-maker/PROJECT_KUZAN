@@ -24,15 +24,16 @@ from database.film_service import (
     get_films_by_genre,
     get_films_by_name,
     get_genres,
+    get_release_year_category,
     get_release_year_range,
 )
 from database.mongo_history_write import save_query
 from ui.history_view import output_last_queries, output_top_queries
 from ui.input_helpers import (
+    # input_command,
     input_any,
     input_year_range,
     select_genre,
-    clear_screen,
 )
 from ui.pagination import clear_screen, show_paginated_results
 from utils.exceptions import ServiceUnavailableError
@@ -88,7 +89,7 @@ q - 🚪   Exit """
             + Style.RESET_ALL
             + Fore.WHITE
         )
-        clear_screen()
+        clear_screen()  # Очистка экрана
         print()
         action = actions.get(choice) # Выбор ф-ции из actions по команде пользователя
 
@@ -278,14 +279,27 @@ def handle_genre_search() -> str | None:
     )
 
     genre_id, genre = select_genre(rows)
-    clear_screen()
-    year_from, year_to = input_year_range(genre_id, genre)
+    year_from, year_to = input_year_range(genre_id)
 
     while True:
+        genre_min_year, genre_max_year = (
+            get_release_year_category(genre_id)
+        )
+
+        if (
+            year_from < genre_min_year
+            or year_to > genre_max_year
+        ):
+            search_year_from = genre_min_year
+            search_year_to = genre_max_year
+        else:
+            search_year_from = year_from
+            search_year_to = year_to
+
         total = count_films_by_genre(
             genre_id,
-            year_from,
-            year_to,
+            search_year_from,
+            search_year_to,
         )
 
         logger.info(
@@ -320,7 +334,11 @@ def handle_genre_search() -> str | None:
 
             result = show_paginated_results(
                 get_films_by_genre,
-                (genre_id, year_from, year_to),
+                (
+                    genre_id,
+                    search_year_from,
+                    search_year_to,
+                ),
                 total=total,
                 title=title,
                 genre=genre,
@@ -344,10 +362,8 @@ def handle_genre_search() -> str | None:
                 + Fore.WHITE
             )
 
-            clear_screen()
-
             if command == "y":
-                year_from, year_to = input_year_range(genre_id, genre)
+                year_from, year_to = input_year_range(genre_id)
                 break
 
             if command == "g":
@@ -370,7 +386,7 @@ def handle_genre_search() -> str | None:
                 )
 
                 genre_id, genre = select_genre(rows)
-                year_from, year_to = input_year_range(genre_id, genre)
+                year_from, year_to = input_year_range(genre_id)
                 break
 
             if command == "m":
