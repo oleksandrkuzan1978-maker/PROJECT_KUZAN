@@ -57,38 +57,76 @@
                 </div>
 
                 <nav aria-label="Навигация по результатам">
-                    <div class="btn-group">
-                        {% if previous_url %}
-                            <a
-                                href="{{ previous_url }}"
-                                class="btn btn-outline-primary"
-                            >
-                                ← Предыдущие 10
-                            </a>
-                        {% else %}
-                            <button
-                                class="btn btn-outline-secondary"
-                                disabled
-                            >
-                                ← Предыдущие 10
-                            </button>
-                        {% endif %}
+                    <div class="d-flex flex-column align-items-md-end gap-2">
+                        <div class="btn-group">
+                            {% if previous_url %}
+                                <a
+                                    href="{{ previous_url }}"
+                                    class="btn btn-outline-primary"
+                                >
+                                    ← Предыдущие 10
+                                </a>
+                            {% else %}
+                                <button
+                                    class="btn btn-outline-secondary"
+                                    disabled
+                                >
+                                    ← Предыдущие 10
+                                </button>
+                            {% endif %}
 
-                        {% if next_url %}
-                            <a
-                                href="{{ next_url }}"
-                                class="btn btn-primary"
+                            {% if next_url %}
+                                <a
+                                    href="{{ next_url }}"
+                                    class="btn btn-primary"
+                                >
+                                    Следующие 10 →
+                                </a>
+                            {% else %}
+                                <button
+                                    class="btn btn-secondary"
+                                    disabled
+                                >
+                                    Следующие 10 →
+                                </button>
+                            {% endif %}
+                        </div>
+
+                        <form
+                            action="/search"
+                            method="get"
+                            class="d-flex flex-wrap align-items-center
+                                   justify-content-md-end gap-2"
+                        >
+                            {% for name, value in pagination_params.items() %}
+                                <input
+                                    type="hidden"
+                                    name="{{ name }}"
+                                    value="{{ value }}"
+                                >
+                            {% endfor %}
+
+                            <label for="page-number" class="form-label mb-0">
+                                Перейти к странице
+                            </label>
+
+                            <input
+                                type="number"
+                                class="form-control"
+                                id="page-number"
+                                name="page"
+                                value="{{ page }}"
+                                min="1"
+                                max="{{ total_pages }}"
+                                required
+                                aria-label="Номер страницы"
+                                style="width: 5.5rem"
                             >
-                                Следующие 10 →
-                            </a>
-                        {% else %}
-                            <button
-                                class="btn btn-secondary"
-                                disabled
-                            >
-                                Следующие 10 →
+
+                            <button type="submit" class="btn btn-outline-primary">
+                                Перейти
                             </button>
-                        {% endif %}
+                        </form>
                     </div>
                 </nav>
             </div>

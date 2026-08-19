@@ -7,7 +7,6 @@
 """
 
 import os
-from uuid import uuid4
 
 import pytest
 from pymongo import MongoClient
@@ -40,10 +39,8 @@ def test_mongodb_connection() -> None:
 def test_mongodb_write_access() -> None:
     """Проверяет запись и удаляет созданный тестовый документ."""
 
-    marker = str(uuid4())
     document = {
         "test": "connection",
-        "marker": marker,
     }
 
     with MongoClient(
@@ -52,12 +49,15 @@ def test_mongodb_write_access() -> None:
         connectTimeoutMS=5000,
     ) as client:
         collection = client[TEST_DB_NAME][TEST_COLLECTION_NAME]
+        inserted_id = None
 
         try:
             result = collection.insert_one(document)
-            saved_document = collection.find_one({"_id": result.inserted_id})
+            inserted_id = result.inserted_id
+            saved_document = collection.find_one({"_id": inserted_id})
 
             assert saved_document is not None
-            assert saved_document["marker"] == marker
+            assert saved_document["test"] == "connection"
         finally:
-            collection.delete_one({"marker": marker})
+            if inserted_id is not None:
+                collection.delete_one({"_id": inserted_id})

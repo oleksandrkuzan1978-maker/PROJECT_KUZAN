@@ -194,11 +194,14 @@
                                     </div>
                                 </div>
 
-                                <div class="form-text mb-3">
+                                <div
+                                    class="form-text mb-3"
+                                    id="genre-year-hint"
+                                >
                                     Введите четырёхзначные годы. Для поиска за один год
                                     укажите одинаковые значения. Годы за пределами
-                                    {{ min_year }}–{{ max_year }} будут автоматически
-                                    ограничены доступным диапазоном.
+                                    доступного диапазона выбранного жанра будут
+                                    автоматически ограничены.
                                 </div>
 
                                 <button
@@ -234,4 +237,66 @@
             </div>
         </div>
     </section>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        const genreSelect = document.getElementById("genre-id");
+        const yearFromInput = document.getElementById("year-from");
+        const yearToInput = document.getElementById("year-to");
+        const yearHint = document.getElementById("genre-year-hint");
+        let yearRangeRequest = 0;
+
+        genreSelect.addEventListener("change", async () => {
+            const genreId = genreSelect.value;
+            const requestId = ++yearRangeRequest;
+
+            if (!genreId) {
+                return;
+            }
+
+            yearFromInput.disabled = true;
+            yearToInput.disabled = true;
+            yearHint.textContent = "Загружается диапазон годов…";
+
+            try {
+                const response = await fetch(
+                    `/genres/${genreId}/year-range`
+                );
+
+                if (!response.ok) {
+                    throw new Error("Диапазон годов не получен");
+                }
+
+                const range = await response.json();
+
+                if (requestId !== yearRangeRequest) {
+                    return;
+                }
+
+                yearFromInput.value = range.min_year;
+                yearFromInput.min = range.min_year;
+                yearFromInput.max = range.max_year;
+
+                yearToInput.value = range.max_year;
+                yearToInput.min = range.min_year;
+                yearToInput.max = range.max_year;
+
+                yearHint.textContent =
+                    `Доступный диапазон для выбранного жанра: ` +
+                    `${range.min_year}–${range.max_year}.`;
+            } catch (error) {
+                if (requestId === yearRangeRequest) {
+                    yearHint.textContent =
+                        "Не удалось загрузить годы выбранного жанра. " +
+                        "Выберите жанр ещё раз.";
+                }
+            } finally {
+                if (requestId === yearRangeRequest) {
+                    yearFromInput.disabled = false;
+                    yearToInput.disabled = false;
+                }
+            }
+        });
+    </script>
 {% endblock %}

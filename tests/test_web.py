@@ -110,14 +110,14 @@ def test_search_by_name_returns_films(client: TestClient) -> None:
     )
 
 
-def test_genre_years_are_limited_to_database_range(
+def test_genre_search_uses_available_years_and_saves_requested_years(
     client: TestClient,
 ) -> None:
-    """Внешние годы автоматически ограничиваются диапазоном БД."""
+    """SQL использует доступные годы, а история — введённые."""
 
     with (
         patch(
-            "app.get_release_year_range",
+            "app.get_release_year_category",
             return_value=(1990, 2026),
         ),
         patch(
@@ -157,6 +157,13 @@ def test_genre_years_are_limited_to_database_range(
         )
 
     assert response.status_code == 200
+    assert 'name="genre_id"' in response.text
+    assert 'value="1"' in response.text
+    assert 'name="year_from"' in response.text
+    assert 'value="1234"' in response.text
+    assert 'name="year_to"' in response.text
+    assert 'value="2345"' in response.text
+    assert "годы: 1234-2345" in response.text
 
     count_mock.assert_called_once_with(
         1,
@@ -175,7 +182,7 @@ def test_genre_years_are_limited_to_database_range(
         "by_genre_years",
         {
             "genre": "Action",
-            "years": "1990-2026",
+            "years": "1234-2345",
         },
         1,
     )
@@ -196,6 +203,8 @@ def test_reversed_year_range_returns_error(client: TestClient) -> None:
 
     assert response.status_code == 400
     assert "Начальный год" in response.text
+    assert "Вернуться к поиску" in response.text
+    assert "Вернуться назад" not in response.text
 
 
 def test_year_must_contain_four_digits(client: TestClient) -> None:
@@ -213,6 +222,42 @@ def test_year_must_contain_four_digits(client: TestClient) -> None:
 
     assert response.status_code == 400
     assert "четырёх цифр" in response.text
+    assert "Вернуться назад" not in response.text
+
+
+def test_genre_year_range_returns_selected_genre_years(
+    client: TestClient,
+) -> None:
+    """Веб-форма получает минимальный и максимальный годы жанра."""
+
+    with patch(
+        "app.get_release_year_category",
+        return_value=(1998, 2006),
+    ) as range_mock:
+        response = client.get("/genres/3/year-range")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "min_year": 1998,
+        "max_year": 2006,
+    }
+    range_mock.assert_called_once_with(3)
+
+
+def test_genre_without_films_returns_not_found(
+    client: TestClient,
+) -> None:
+    """Пустой жанр не возвращает форме некорректные годы."""
+
+    with patch(
+        "app.get_release_year_category",
+        return_value=(None, None),
+    ):
+        response = client.get("/genres/99/year-range")
+
+    assert response.status_code == 404
+    assert "Вернуться к поиску" in response.text
+    assert "Вернуться назад" not in response.text
 
 def test_second_page_uses_correct_offset(client: TestClient) -> None:
     """Вторая страница использует LIMIT 10 и OFFSET 10."""
@@ -251,6 +296,38 @@ def test_second_page_uses_correct_offset(client: TestClient) -> None:
     )
 
     save_mock.assert_not_called()
+
+
+def test_results_include_page_number_form(client: TestClient) -> None:
+    """Форма перехода сохраняет параметры поиска по названию."""
+
+    with (
+        patch("app.count_films_by_name", return_value=25),
+        patch(
+            "app.get_films_by_name",
+            return_value=(
+                [("ACADEMY", "Description", 2006)],
+                ["title", "description", "release_year"],
+            ),
+        ),
+        patch("app.save_query_safely"),
+    ):
+        response = client.get(
+            "/search",
+            params={
+                "search_type": "name",
+                "title": "academy",
+            },
+        )
+
+    assert response.status_code == 200
+    assert 'name="page"' in response.text
+    assert 'max="3"' in response.text
+    assert 'name="search_type"' in response.text
+    assert 'value="name"' in response.text
+    assert 'name="title"' in response.text
+    assert 'value="academy"' in response.text
+    assert "Перейти к странице" in response.text
 
 
 def test_search_without_results_is_saved_on_first_page(
@@ -347,16 +424,16 @@ def test_recent_queries_page(client: TestClient) -> None:
     assert "02.08.2026 14:30:15" in response.text
 
 
-def test_unknown_search_type_returns_error(client: TestClient) -> None:
-    """Неизвестный вид поиска возвращает HTTP 400."""
+def test_unknown_search_type_fails_validation(client: TestClient) -> None:
+    """FastAPI отклоняет вид поиска, отсутствующий в форме."""
 
     response = client.get(
         "/search",
         params={"search_type": "unknown"},
     )
 
-    assert response.status_code == 400
-    assert "Неизвестный вид поиска" in response.text
+    assert response.status_code == 422
+    assert "Некорректные параметры" in response.text
 
 
 def test_missing_result_page_returns_not_found(
@@ -382,6 +459,8 @@ def test_missing_result_page_returns_not_found(
         )
 
     assert response.status_code == 404
+    assert "Вернуться к поиску" in response.text
+    assert "Вернуться назад" not in response.text
     save_mock.assert_not_called()
 
 

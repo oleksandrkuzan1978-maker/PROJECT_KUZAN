@@ -3,6 +3,7 @@
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 import mysql.connector
 from fastapi.exceptions import RequestValidationError
@@ -17,6 +18,7 @@ from database.film_service import (
     get_films_by_genre,
     get_films_by_name,
     get_genres,
+    get_release_year_category,
     get_release_year_range,
 )
 from database.mongo_history_write import (
@@ -35,7 +37,7 @@ PAGE_SIZE = 10
 
 logger = logging.getLogger(__name__)
 
-# Асинхронная ф-ция для управления жизненным циклом приложения
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Управляет клиентами MongoDB в течение работы веб-приложения."""
@@ -48,15 +50,12 @@ async def lifespan(_app: FastAPI):
         close_mongo_connections()
 
 
-# Объект приложения
 app = FastAPI(
     title="Sakila Movie Search",
     description="Searching for films in the Sakila database",
     lifespan=lifespan,
 )
 
-# Cоздание объекта templates (шаблонизатора), через который Python-код может
-# передавать html-шаблонам в директории TEMPLATES_DIR данные для формирования HTML.
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
@@ -80,7 +79,7 @@ def render_error_page(
         status_code=status_code,
     )
 
-# Благодаря декоратору app.exception_handler FastAPI автоматически использует ф-цию при возникновении ошибки
+
 @app.exception_handler(HTTPException)
 def handle_http_exception(
     request: Request,
@@ -253,10 +252,30 @@ def index(request: Request):
     )
 
 
+@app.get("/genres/{genre_id}/year-range")
+def genre_year_range(
+    genre_id: int,
+) -> dict[str, int]:
+    """Возвращает доступный диапазон годов выбранного жанра."""
+
+    min_year, max_year = get_release_year_category(genre_id)
+
+    if min_year is None or max_year is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Для выбранного жанра фильмы не найдены.",
+        )
+
+    return {
+        "min_year": min_year,
+        "max_year": max_year,
+    }
+
+
 @app.get("/search", response_class=HTMLResponse)
 def search(
     request: Request,
-    search_type: str,
+    search_type: Literal["name", "genre_years"],
     title: str = "",
     genre_id: int | None = Query(default=None, ge=1),
     year_from: str | None = None,
@@ -284,6 +303,10 @@ def search(
         )
 
         search_description = f"По названию: {title}"
+        pagination_params = {
+            "search_type": search_type,
+            "title": title,
+        }
 
         if page == 1:
             history_query = {
@@ -331,14 +354,20 @@ def search(
                 ),
             )
 
-        min_year, max_year = get_release_year_range()
+        min_year, max_year = get_release_year_category(genre_id)
 
-        year_from = min(
+        if min_year is None or max_year is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Для выбранного жанра фильмы не найдены.",
+            )
+
+        search_year_from = min(
             max(requested_year_from, min_year),
             max_year,
         )
 
-        year_to = min(
+        search_year_to = min(
             max(requested_year_to, min_year),
             max_year,
         )
@@ -355,30 +384,36 @@ def search(
 
         total = count_films_by_genre(
             genre_id,
-            year_from,
-            year_to,
+            search_year_from,
+            search_year_to,
         )
 
         offset = (page - 1) * PAGE_SIZE
 
         rows, headers = get_films_by_genre(
             genre_id,
-            year_from,
-            year_to,
+            search_year_from,
+            search_year_to,
             PAGE_SIZE,
             offset,
         )
 
         history_query = format_genre_history_query(
             genre,
-            year_from,
-            year_to,
+            requested_year_from,
+            requested_year_to,
         )
 
         search_description = (
             f"Жанр: {history_query['genre']}, "
             f"годы: {history_query['years']}"
         )
+        pagination_params = {
+            "search_type": search_type,
+            "genre_id": genre_id,
+            "year_from": requested_year_from,
+            "year_to": requested_year_to,
+        }
 
         if page == 1:
             save_query_safely(
@@ -386,12 +421,6 @@ def search(
                 history_query,
                 total,
             )
-
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail="Неизвестный вид поиска.",
-        )
 
     total_pages = max(
         1,
@@ -429,6 +458,7 @@ def search(
             "total_pages": total_pages,
             "previous_url": previous_url,
             "next_url": next_url,
+            "pagination_params": pagination_params,
         },
     )
 
