@@ -41,18 +41,13 @@ def input_year_range(genre_id: int) -> tuple[int, int]:
           + Style.RESET_ALL + Fore.WHITE)
 
     while True:
-        year_from = input_number(
-            "\nEnter the start year of the range (4 digits): "
-        )
-        year_to = input_number(
-            "Enter the end year of the range (4 digits): "
-        )
+        year_from = input_number("\nEnter the start year of the range (4 digits): ")
+        if len(str(year_from)) != 4:
+            print(Fore.RED + "\n\tInvalid year input")
+            continue
+        year_to = input_number("Enter the end year of the range (4 digits): ")
 
-        if (
-            len(str(year_from)) == 4
-            and len(str(year_to)) == 4
-            and year_from <= year_to
-        ):
+        if len(str(year_to)) == 4 and year_from <= year_to:
             return year_from, year_to
 
         print(Fore.RED + "\n\tInvalid year input")
