@@ -363,15 +363,14 @@ def search(
                 detail="Для выбранного жанра фильмы не найдены.",
             )
 
-        if (
-            requested_year_from < min_year
-            or requested_year_to > max_year
-        ):
-            search_year_from = min_year
-            search_year_to = max_year
-        else:
-            search_year_from = requested_year_from
-            search_year_to = requested_year_to
+        years_overlap = not (
+            requested_year_to < min_year
+            or requested_year_from > max_year
+        )
+
+        if years_overlap:
+            search_year_from = max(requested_year_from, min_year)
+            search_year_to = min(requested_year_to, max_year)
 
         genre_rows, _ = get_genres()
         genres = dict(genre_rows)
@@ -383,21 +382,26 @@ def search(
                 detail="Выбранный жанр отсутствует.",
             )
 
-        total = count_films_by_genre(
-            genre_id,
-            search_year_from,
-            search_year_to,
-        )
+        if years_overlap:
+            total = count_films_by_genre(
+                genre_id,
+                search_year_from,
+                search_year_to,
+            )
 
-        offset = (page - 1) * PAGE_SIZE
+            offset = (page - 1) * PAGE_SIZE
 
-        rows, headers = get_films_by_genre(
-            genre_id,
-            search_year_from,
-            search_year_to,
-            PAGE_SIZE,
-            offset,
-        )
+            rows, headers = get_films_by_genre(
+                genre_id,
+                search_year_from,
+                search_year_to,
+                PAGE_SIZE,
+                offset,
+            )
+        else:
+            total = 0
+            rows = []
+            headers = []
 
         history_query = format_genre_history_query(
             genre,

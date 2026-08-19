@@ -118,7 +118,7 @@ def test_genre_search_uses_available_years_and_saves_requested_years(
     with (
         patch(
             "app.get_release_year_category",
-            return_value=(1990, 2026),
+            return_value=(1992, 2025),
         ),
         patch(
             "app.get_genres",
@@ -150,7 +150,7 @@ def test_genre_search_uses_available_years_and_saves_requested_years(
             params={
                 "search_type": "genre_years",
                 "genre_id": 1,
-                "year_from": "1980",
+                "year_from": "1200",
                 "year_to": "2000",
                 "page": 1,
             },
@@ -160,21 +160,21 @@ def test_genre_search_uses_available_years_and_saves_requested_years(
     assert 'name="genre_id"' in response.text
     assert 'value="1"' in response.text
     assert 'name="year_from"' in response.text
-    assert 'value="1980"' in response.text
+    assert 'value="1200"' in response.text
     assert 'name="year_to"' in response.text
     assert 'value="2000"' in response.text
-    assert "годы: 1980-2000" in response.text
+    assert "годы: 1200-2000" in response.text
 
     count_mock.assert_called_once_with(
         1,
-        1990,
-        2026,
+        1992,
+        2000,
     )
 
     fetch_mock.assert_called_once_with(
         1,
-        1990,
-        2026,
+        1992,
+        2000,
         10,
         0,
     )
@@ -182,9 +182,60 @@ def test_genre_search_uses_available_years_and_saves_requested_years(
         "by_genre_years",
         {
             "genre": "Action",
-            "years": "1980-2000",
+            "years": "1200-2000",
         },
         1,
+    )
+
+
+@pytest.mark.parametrize(
+    ("year_from", "year_to"),
+    (
+        ("1200", "1250"),
+        ("2030", "2200"),
+    ),
+)
+def test_genre_search_outside_available_years_returns_no_films(
+    client: TestClient,
+    year_from: str,
+    year_to: str,
+) -> None:
+    """Веб-поиск не подменяет внешний диапазон граничным годом."""
+
+    with (
+        patch(
+            "app.get_release_year_category",
+            return_value=(1992, 2025),
+        ),
+        patch(
+            "app.get_genres",
+            return_value=([(1, "Action")], ["id", "genre"]),
+        ),
+        patch("app.count_films_by_genre") as count_mock,
+        patch("app.get_films_by_genre") as fetch_mock,
+        patch("app.save_query_safely") as save_mock,
+    ):
+        response = client.get(
+            "/search",
+            params={
+                "search_type": "genre_years",
+                "genre_id": 1,
+                "year_from": year_from,
+                "year_to": year_to,
+            },
+        )
+
+    assert response.status_code == 200
+    assert "По заданным параметрам фильмы не найдены" in response.text
+    count_mock.assert_not_called()
+    fetch_mock.assert_not_called()
+    save_mock.assert_called_once_with(
+        "by_genre_years",
+        {
+            "genre": "Action",
+            "years": f"{year_from}-{year_to}",
+        },
+        0,
     )
 
 

@@ -286,21 +286,24 @@ def handle_genre_search() -> str | None:
             get_release_year_category(genre_id)
         )
 
-        if (
-            year_from < genre_min_year
-            or year_to > genre_max_year
-        ):
-            search_year_from = genre_min_year
-            search_year_to = genre_max_year
+        years_overlap = not (
+            year_to < genre_min_year
+            or year_from > genre_max_year
+        )
+
+        if years_overlap:
+            search_year_from = max(year_from, genre_min_year)
+            search_year_to = min(year_to, genre_max_year)
+
+            total = count_films_by_genre(
+                genre_id,
+                search_year_from,
+                search_year_to,
+            )
         else:
             search_year_from = year_from
             search_year_to = year_to
-
-        total = count_films_by_genre(
-            genre_id,
-            search_year_from,
-            search_year_to,
-        )
+            total = 0
 
         logger.info(
             "Поиск по жанру и годам выполнен: "
