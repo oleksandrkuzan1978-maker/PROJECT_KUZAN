@@ -50,10 +50,9 @@ def open_mongo_connections() -> None:
 
     global client_write
     global client_atlas
+
     global collection_write
     global collection_atlas
-
-    close_mongo_connections()
 
     if USE_MAIN_MONGODB:
         client_write = MongoClient(

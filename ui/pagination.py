@@ -8,6 +8,7 @@
 
 import logging
 from typing import Any, TypeAlias
+from textwrap import shorten
 from collections.abc import Callable
 
 from colorama import Fore, Style
@@ -205,3 +206,4 @@ def show_paginated_results(
                 + "\nThank you for using the program!\n"
             )
             return "exit"
+

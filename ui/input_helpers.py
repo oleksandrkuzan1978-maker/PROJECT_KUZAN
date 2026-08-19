@@ -57,10 +57,10 @@ def input_year_range(genre_id, genre) -> tuple[int, int] | None:
 
         if len(str(year_to)) == 4 and year_from <= year_to:
 
-            if year_from < MIN_YEAR:
-                year_from = MIN_YEAR
-            if year_to > MAX_YEAR:
-                year_to = MAX_YEAR
+            if year_from < year_min:
+                year_from = year_min
+            if year_to > year_max:
+                year_to = year_max
 
             return year_from, year_to
 

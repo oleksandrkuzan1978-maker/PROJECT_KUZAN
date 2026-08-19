@@ -59,6 +59,7 @@ def output_last_queries() -> None:
     print(Fore.YELLOW + "========== Recent queries ==========" + Style.RESET_ALL + Fore.WHITE)
 
     try:
+
         for i, q in enumerate(queries, start=1):
             print(_format_query(i, q))
             print(
