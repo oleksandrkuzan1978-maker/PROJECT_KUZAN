@@ -21,7 +21,7 @@ def test_input_year_range_preserves_four_digit_values() -> None:
             side_effect=("1200", "2000"),
         ),
     ):
-        result = input_year_range(1)
+        result = input_year_range("Action", 1)
 
     assert result == (1200, 2000)
 
