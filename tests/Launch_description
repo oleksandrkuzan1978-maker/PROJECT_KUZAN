@@ -3,6 +3,12 @@ Launch description
 Активирует виртуальное окружение проекта.
 .venv\Scripts\Activate.ps1
 
+Для запуска тестов из test_mongo.py, test_mysql.py в строке терминала PyCharm надо
+ввести:
+$env:RUN_MONGO_TESTS = "1"
+$env:RUN_MYSQL_TESTS = "1"
+
+
 Запускает все тесты из папки tests с подробным выводом.
 python -m pytest tests -v
 
@@ -15,12 +21,6 @@ python -m pytest tests/test_connection.py -v
 Запускает один конкретный тест test_popular_queries_page.
 python -m pytest tests/test_web.py::test_popular_queries_page -v
 
-
-
-
-
-Разрешает запуск интеграционных тестов, использующих реальную MongoDB.
-$env:RUN_MONGO_TESTS = "1"
 
 Запускает реальные проверки подключения и записи в MongoDB.
 Предварительно должна быть установлена переменная RUN_MONGO_TESTS.

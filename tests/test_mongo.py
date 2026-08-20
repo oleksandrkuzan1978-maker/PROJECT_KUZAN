@@ -12,6 +12,7 @@ import pytest
 from pymongo import MongoClient
 
 from config.local_settings import MONGODB_URL_WRITE
+from database.mongo_connection import DB_NAME
 
 
 pytestmark = pytest.mark.skipif(
@@ -19,9 +20,7 @@ pytestmark = pytest.mark.skipif(
     reason="Для запуска требуется RUN_MONGO_TESTS=1",
 )
 
-TEST_DB_NAME = "ich_edit_test"
 TEST_COLLECTION_NAME = "connection_test"
-
 
 def test_mongodb_connection() -> None:
     """Проверяет доступность настроенного сервера MongoDB."""
@@ -48,7 +47,7 @@ def test_mongodb_write_access() -> None:
         serverSelectionTimeoutMS=5000,
         connectTimeoutMS=5000,
     ) as client:
-        collection = client[TEST_DB_NAME][TEST_COLLECTION_NAME]
+        collection = client[DB_NAME][TEST_COLLECTION_NAME]
         inserted_id = None
 
         try:
