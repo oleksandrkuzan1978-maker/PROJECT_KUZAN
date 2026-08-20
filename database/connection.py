@@ -1,39 +1,46 @@
 """
-Модуль для создания соединения с базой данных MySQL.
+Создание соединений с базой данных MySQL.
 
-Назначение:
-    Инкапсулирует логику подключения к СУБД MySQL и
-    предоставляет функцию получения объекта соединения.
-
-Использование:
-    from database.connection import get_connection
-
-    connection = get_connection()
-
-Требования:
-    - установлен пакет mysql-connector-python;
-    - настроен словарь dbconfig в файле config/local_settings.py.
-
-Содержит:
-    get_connection() -> mysql.connector.MySQLConnection
+Параметры подключения загружаются из config.local_settings.
+Модуль не выполняет SQL-запросы и не обрабатывает ошибки
+на уровне пользовательского интерфейса.
 """
-
-# database/connection.py
-import mysql.connector
-from config.local_settings import dbconfig # импорт словаря с настройками подключения
 
 import logging
 
+import mysql.connector
+from mysql.connector.connection import MySQLConnectionAbstract
+from mysql.connector.errors import InterfaceError, OperationalError
+
+from config.local_settings import dbconfig  # импорт словаря с настройками подключения
+from utils.logger_config import funclog
+from utils.exceptions import ServiceUnavailableError
+
 logger = logging.getLogger(__name__)
 
+@funclog
+def get_connection() -> MySQLConnectionAbstract: # None | PooledMySQLConnection | MySQLConnectionAbstract
+    """Создаёт соединение с MySQL.
 
-def get_connection():
-    logger.debug("Параметры подключения загружены")
-    try: # В этом модуле стоит ловить ошибки подключения
-        conn = mysql.connector.connect(**dbconfig) # функция из библиотеки mysql.connector
-                                                    # пытается установить соединение с сервером MySQL.
-        logger.info("Успешное подключение к БД '%s'", dbconfig.get("database"))
-        return conn # это объект соединения (MySQLConnection)
-    except mysql.connector.Error:
-        logger.exception("Ошибка подключения к MySQL")
-        raise
+       Raises:
+           ServiceUnavailableError:
+               Если сервер MySQL недоступен.
+       """
+
+    logger.debug("Попытка подключения к БД '%s'.\n"
+                 "Используются параметры подключения из local_settings.py."
+                 , dbconfig.get("database"))
+    try:
+
+        conn = mysql.connector.connect(
+            **dbconfig) # функция из библиотеки mysql.connector устанавливает соединение с сервером MySQL.
+
+    except (InterfaceError, OperationalError) as error:
+        logger.debug(
+            "Не удалось подключиться к MySQL: %s",
+            error,
+        )
+        raise ServiceUnavailableError("MySQL") from error
+
+    logger.debug("Успешное подключение к БД '%s'", dbconfig.get("database"))
+    return conn  # это объект соединения (MySQLConnection)

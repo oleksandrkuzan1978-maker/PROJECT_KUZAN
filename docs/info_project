@@ -1,0 +1,41 @@
+В терминале Git Bash проект из его директории запускается командой kuzrun
+
+
+
+# Запрос в MongoDB с использованием оконной функции (получение пяти последних уникальных запросов)
+result = client['ich_edit']['final_project_060326_ptm_oleksandr_kuzan'].aggregate([
+    {
+        '$setWindowFields': {
+            'partitionBy': {
+                'search_type': '$search_type',
+                'query': '$query'
+            },
+            'sortBy': {
+                'created_at': -1
+            },
+            'output': {
+                'rank': {
+                    '$rank': {}
+                }
+            }
+        }
+    }, {
+        '$match': {
+            'rank': 1
+        }
+    }, {
+        '$sort': {
+            'created_at': -1
+        }
+    }, {
+        '$limit': 5
+    }, {
+        '$project': {
+            '_id': 0,
+            'search_type': 1,
+            'query': 1,
+            'created_at': 1,
+            'results_count': 1
+        }
+    }
+])

@@ -1,129 +1,135 @@
 """
-Сервисный модуль для работы с фильмами.
+Сервисные операции для поиска фильмов.
 
-Назначение:
-    Реализует бизнес-логику приложения,
-    связанную с получением информации о фильмах.
-
-Функции модуля:
-    - поиск фильмов по названию;
-    - поиск фильмов по жанру и диапазону годов;
-    - организация взаимодействия между
-      SQL-запросами и пользовательским интерфейсом.
-
-Особенности:
-    Модуль использует:
-        - database.connection
-        - database.executor
-        - database.queries
-
-и скрывает детали работы с базой данных
-от остальных частей программы.
+Модуль предоставляет пользовательскому интерфейсу предметные
+функции поиска и скрывает SQL-запросы, управление соединениями
+и извлечение результатов из курсора.
 """
 
-# services/film_service.py
-import mysql.connector
+from typing import Any, TypeAlias
+
 from database.connection import get_connection
 from database.executor import execute_query
+from utils.logger_config import funclog
 from database.queries import (
-    NAME_TOTAL,
     GENRES_TOTAL,
-    GET_BY_NAME,
     GET_BY_GENRES_AND_YEARS,
-    GET_GENRES
+    GET_BY_NAME,
+    GET_GENRES,
+    GET_RELEASE_YEAR_RANGE,
+    GET_RELEASE_YEAR_CATEGORY,
+    NAME_TOTAL,
 )
 
-import logging
-
-logger = logging.getLogger(__name__) # Создаю логгер с именем "file_service".
-                                      # Метод getLogger возвращает объект логгера с именем этого модуля".
-
-
-# Ф-ция возвращает общее кол-во совпадений по запросу
-def show_total(name_genre, year_from, year_to):
-
-    connection = get_connection()
-    try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
-        cursor = connection.cursor()
-        if not year_from:
-            total = execute_query(cursor,  # Общее кол-во совпадений по запросу
-                                  NAME_TOTAL,
-                                 name_genre)
-        else:
-            total = execute_query(cursor,  # Общее кол-во совпадений по запросу
-                                  GENRES_TOTAL,
-                                  name_genre, year_from, year_to)
-        return total
+QueryResult: TypeAlias = tuple[
+    list[tuple[Any, ...]],
+    list[str],
+]
 
 
-    except mysql.connector.Error:
-        logger.exception("Ошибка подключения при запросе №1_1 или 2_1")
-        raise
-    finally:
-        connection.close()
-        logger.info("Соединение для запросов 1_1, 2_1 закрыто")
+# Приватная ф-ция осуществляет соединение
+@funclog
+def _execute(query: str, *params: Any) -> QueryResult:
+    """Выполняет SELECT-запрос и возвращает строки с заголовками."""
+
+    with get_connection() as connection:
+        with connection.cursor() as  cursor:
+
+            return execute_query(
+                                cursor,
+                                query,
+                                *params)
 
 
-def show_films_by_name(
-        name: str,
-        offset: int):
+def _get_count(
+    query: str,
+    *params: Any,
+) -> int:
+    """Возвращает COUNT(*) из переданного запроса."""
 
-    connection = get_connection()
-    try:  # Если нужно преобразовать технические ошибки в бизнес-ошибки:
-        cursor = connection.cursor()
+    rows, _ = _execute(query, *params)
 
-        return execute_query(
-            cursor,
-            GET_BY_NAME,
-            name,
-            offset)
-
-    except mysql.connector.Error:
-        logger.exception("Ошибка подключения при запросе №1_2")
-        raise
-    finally:
-        connection.close()
-        logger.info("Соединение для запроса 1_2 закрыто")
+    return rows[0][0]
 
 
+def get_genres() -> QueryResult:
+    """Возвращает список жанров."""
 
-def show_films_by_genre(
-        genre_id: int,
-        year_from: int,
-        year_to: int,
-        offset: int):
-    connection = get_connection()
-    try:
-        cursor = connection.cursor()
-
-        return execute_query(
-            cursor,
-            GET_BY_GENRES_AND_YEARS,
-            genre_id,
-            year_from,
-            year_to,
-            offset
-        )
-
-    except mysql.connector.Error:
-        logger.exception("Ошибка подключения при запросе №2_2")
-        raise
-    finally:
-        connection.close()
-        logger.info("Соединение для запроса 2_2 закрыто")
+    return _execute(GET_GENRES)
 
 
+def count_films_by_name(name: str) -> int:
+    """Возвращает количество фильмов, найденных по названию."""
 
-def show_categories():
-    connection = get_connection()
-    try:
-        cursor = connection.cursor()
-        return execute_query(
-            cursor,
-            GET_GENRES)
-    except mysql.connector.Error:
-        logger.exception("Ошибка подключения при запросе №3")
-        raise
-    finally:
-        connection.close()
-        logger.info("Соединение для запроса 3 закрыто")
+    name_pattern = f"%{name}%"
+
+    return _get_count(NAME_TOTAL, name_pattern)
+
+@funclog
+def get_films_by_name(
+    name: str,
+    limit: int,
+    offset: int,
+) -> QueryResult:
+    """Возвращает страницу фильмов, найденных по названию."""
+
+    name_pattern = f"%{name}%"
+
+    return _execute(
+        GET_BY_NAME,
+        name_pattern,
+        limit,
+        offset,
+    )
+
+
+def count_films_by_genre(
+    genre_id: int,
+    year_from: int,
+    year_to: int,
+) -> int:
+    """Возвращает количество фильмов по жанру и годам."""
+
+    return _get_count(
+        GENRES_TOTAL,
+        genre_id,
+        year_from,
+        year_to,
+    )
+
+@funclog
+def get_films_by_genre(
+    genre_id: int,
+    year_from: int,
+    year_to: int,
+    limit: int,
+    offset: int,
+) -> QueryResult:
+    """Возвращает страницу фильмов по жанру и годам."""
+
+    return _execute(
+        GET_BY_GENRES_AND_YEARS,
+        genre_id,
+        year_from,
+        year_to,
+        limit,
+        offset,
+    )
+
+def get_release_year_range() -> tuple[int, int]:
+    """Возвращает минимальный и максимальный годы выпуска фильмов."""
+
+    rows, _ = _execute(GET_RELEASE_YEAR_RANGE)
+    min_year, max_year = rows[0]
+
+    return min_year, max_year
+
+
+def get_release_year_category(genre_id: int) -> tuple[int, int]:
+    """Возвращает минимальный и максимальный годы выпуска фильмов по жанру."""
+
+    rows, _ = _execute(GET_RELEASE_YEAR_CATEGORY, genre_id)
+    year_min, year_max = rows[0]
+
+    return year_min, year_max
+

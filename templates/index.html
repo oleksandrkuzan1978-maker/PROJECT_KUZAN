@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Поиск фильмов — Sakila Movie Search
+{% endblock %}
+
+{% block content %}
+    <header class="bg-primary text-white py-5">
+        <div class="container text-center">
+            <h1 class="display-5 fw-bold">
+                Поиск фильмов
+            </h1>
+
+            <p class="lead mb-0">
+                Найдите фильмы по названию или по жанру и годам
+            </p>
+        </div>
+    </header>
+
+    <section class="container py-5">
+        <div class="search-card">
+            <div class="card border-0 shadow">
+                <div class="card-body p-4 p-md-5">
+                    <h2 class="text-center mb-4">
+                        Выберите вариант поиска
+                    </h2>
+
+                    <ul
+                        class="nav nav-pills nav-fill mb-4"
+                        id="searchTabs"
+                        role="tablist"
+                    >
+                        <li class="nav-item" role="presentation">
+                            <button
+                                class="nav-link active"
+                                id="title-tab"
+                                data-bs-toggle="tab"
+                                data-bs-target="#title-search"
+                                type="button"
+                                role="tab"
+                                aria-controls="title-search"
+                                aria-selected="true"
+                            >
+                                По названию
+                            </button>
+                        </li>
+
+                        <li class="nav-item" role="presentation">
+                            <button
+                                class="nav-link"
+                                id="genre-years-tab"
+                                data-bs-toggle="tab"
+                                data-bs-target="#genre-years-search"
+                                type="button"
+                                role="tab"
+                                aria-controls="genre-years-search"
+                                aria-selected="false"
+                            >
+                                По жанру и годам
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div
+                            class="tab-pane fade show active"
+                            id="title-search"
+                            role="tabpanel"
+                            aria-labelledby="title-tab"
+                            tabindex="0"
+                        >
+                            <form action="/search" method="get">
+                                <input
+                                    type="hidden"
+                                    name="search_type"
+                                    value="name"
+                                >
+
+                                <div class="mb-3">
+                                    <label
+                                        for="film-title"
+                                        class="form-label"
+                                    >
+                                        Название фильма
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        class="form-control form-control-lg"
+                                        id="film-title"
+                                        name="title"
+                                        placeholder="Например: academy"
+                                        required
+                                    >
+
+                                    <div class="form-text">
+                                        Можно ввести полное название или его часть.
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary btn-lg w-100"
+                                >
+                                    Найти фильмы
+                                </button>
+                            </form>
+                        </div>
+
+                        <div
+                            class="tab-pane fade"
+                            id="genre-years-search"
+                            role="tabpanel"
+                            aria-labelledby="genre-years-tab"
+                            tabindex="0"
+                        >
+                            <form action="/search" method="get">
+                                <input
+                                    type="hidden"
+                                    name="search_type"
+                                    value="genre_years"
+                                >
+
+                                <div class="mb-3">
+                                    <label
+                                        for="genre-id"
+                                        class="form-label"
+                                    >
+                                        Выберите жанр
+                                    </label>
+
+                                    <select
+                                        class="form-select form-select-lg"
+                                        id="genre-id"
+                                        name="genre_id"
+                                        required
+                                    >
+                                        <option value="" selected disabled>
+                                            Выберите жанр
+                                        </option>
+
+                                        {% for genre in genres %}
+                                            <option value="{{ genre.id }}">
+                                                {{ genre.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label
+                                            for="year-from"
+                                            class="form-label"
+                                        >
+                                            Год от
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            class="form-control form-control-lg"
+                                            id="year-from"
+                                            name="year_from"
+                                            value="{{ min_year }}"
+                                            inputmode="numeric"
+                                            pattern="[0-9]{4}"
+                                            minlength="4"
+                                            maxlength="4"
+                                            required
+                                        >
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label
+                                            for="year-to"
+                                            class="form-label"
+                                        >
+                                            Год до
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            class="form-control form-control-lg"
+                                            id="year-to"
+                                            name="year_to"
+                                            value="{{ max_year }}"
+                                            inputmode="numeric"
+                                            pattern="[0-9]{4}"
+                                            minlength="4"
+                                            maxlength="4"
+                                            required
+                                        >
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="form-text mb-3"
+                                    id="genre-year-hint"
+                                >
+                                    Введите четырёхзначные годы. Для поиска за один год
+                                    укажите одинаковые значения. Годы за пределами
+                                    доступного диапазона выбранного жанра будут
+                                    автоматически ограничены.
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary btn-lg w-100"
+                                >
+                                    Найти фильмы
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-4">
+                <div class="col-md-6">
+                    <a
+                        href="/popular"
+                        class="btn btn-warning btn-lg w-100"
+                    >
+                        ☆ Популярные запросы
+                    </a>
+                </div>
+
+                <div class="col-md-6">
+                    <a
+                        href="/recent"
+                        class="btn btn-secondary btn-lg w-100"
+                    >
+                        🕒 Последние запросы
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        const genreSelect = document.getElementById("genre-id");
+        const yearFromInput = document.getElementById("year-from");
+        const yearToInput = document.getElementById("year-to");
+        const yearHint = document.getElementById("genre-year-hint");
+        let yearRangeRequest = 0;
+
+        genreSelect.addEventListener("change", async () => {
+            const genreId = genreSelect.value;
+            const requestId = ++yearRangeRequest;
+
+            if (!genreId) {
+                return;
+            }
+
+            yearFromInput.disabled = true;
+            yearToInput.disabled = true;
+            yearHint.textContent = "Загружается диапазон годов…";
+
+            try {
+                const response = await fetch(
+                    `/genres/${genreId}/year-range`
+                );
+
+                if (!response.ok) {
+                    throw new Error("Диапазон годов не получен");
+                }
+
+                const range = await response.json();
+
+                if (requestId !== yearRangeRequest) {
+                    return;
+                }
+
+                yearFromInput.value = range.min_year;
+                yearFromInput.min = range.min_year;
+                yearFromInput.max = range.max_year;
+
+                yearToInput.value = range.max_year;
+                yearToInput.min = range.min_year;
+                yearToInput.max = range.max_year;
+
+                yearHint.textContent =
+                    `Доступный диапазон для выбранного жанра: ` +
+                    `${range.min_year}–${range.max_year}.`;
+            } catch (error) {
+                if (requestId === yearRangeRequest) {
+                    yearHint.textContent =
+                        "Не удалось загрузить годы выбранного жанра. " +
+                        "Выберите жанр ещё раз.";
+                }
+            } finally {
+                if (requestId === yearRangeRequest) {
+                    yearFromInput.disabled = false;
+                    yearToInput.disabled = false;
+                }
+            }
+        });
+    </script>
+{% endblock %}

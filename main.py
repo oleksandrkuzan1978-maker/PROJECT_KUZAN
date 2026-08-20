@@ -1,68 +1,84 @@
 """
-Точка входа в приложение.
+Точка входа консольного приложения поиска фильмов.
 
-Назначение:
-    Запускает выполнение программы и демонстрирует
-    работу сервисов получения данных из базы данных.
-
-Алгоритм работы:
-
-    1. Импортирует необходимые сервисы.
-    2. Вызывает функции бизнес-логики.
-    3. Выводит результаты на экран.
-
-Модуль должен содержать только код запуска приложения
-и не должен включать SQL-запросы или логику работы
-с базой данных.
+Модуль настраивает журналирование, запускает пользовательский
+интерфейс и выполняет финальную обработку необработанных ошибок.
 """
-
-# main.py
-from ui.console import get_user_input
-import mysql.connector
-from utils.logger_config import setup_logging
-from config.local_settings import dbconfig
-from database.film_service import (
-    show_films_by_name,
-    show_films_by_genre
-)
 import logging
+import sys
+
+import mysql.connector
+
+from utils.logger_config import setup_logging
 
 setup_logging()
+from ui.console import get_user_input
+from ui.pagination import clear_screen
+from utils.exceptions import ServiceUnavailableError
+from database.mongo_connection import (
+    close_mongo_connections,
+    open_mongo_connections,
+)
+from config.local_settings import dbconfig
 
-logger = logging.getLogger(__name__) # Создаю логгер с именем "main".
-                                     # Метод getLogger возвращает объект логгера с именем этого модуля"
+
+logger = logging.getLogger(__name__)  # Создаю логгер с именем "main".
 
 
-def main():
+# Метод getLogger возвращает объект логгера с именем этого модуля
+def main() -> None:
     # Достаю из переменной (словаря) название БД
-
     db_name = dbconfig.get("database", "unknown")  # По умолчанию get возвращает "unknown"
-    logger.info(f"=== Запуск приложения {db_name} Film Query ===")
+    logger.info(f"=== Запуск приложения {db_name} Film Search ===")
+
+    clear_screen()
+
     try:
-        first, year_from, year_to, offset = get_user_input()
-        if not year_from:
-            result = show_films_by_name(f"%{first}%", offset)
-            print(f"\n========= Вывод фильмов из БД '{db_name}' по названию и году выпуска ==========")
-            print(result,"\n")
-        else:
-            result = show_films_by_genre(first, year_from, year_to, offset)
-            print(f"\n========= Вывод фильмов по жанрам и годам из БД '{db_name}' =========")
-            print(result)
+        open_mongo_connections()
+        get_user_input()
+
         logger.info("=== Все запросы выполнены успешно ===")
-        logger.info("Завершение приложения")
 
+    except ServiceUnavailableError as error:
+        logger.exception(
+            "Приложение не может обратиться к сервису %s",
+            error.service,
+        )
+        print(
+            f"{error.service} is unavailable. "
+            "Check your network connection and try again."
+        )
+        sys.exit(1)
 
+    except mysql.connector.ProgrammingError:
+        logger.exception(
+            "Приложение завершено из-за ошибки в SQL-запросе"
+        )
+        print("Internal application error.")
+        sys.exit(1)
 
     except mysql.connector.Error:
-        print("Не удалось подключиться к БД")
-        exit(1)
+        logger.exception("Приложение завершено из-за ошибки работы с БД")
+        print("Database error.")
+        sys.exit(1)
+
+    except (KeyboardInterrupt, EOFError):
+        logger.info("Приложение завершено пользователем")
+        print("\nThe application has finished running.")
+
     except Exception:
-        logger.exception("Критическая ошибка в main()")
-        print("Произошла ошибка выполнения программы. Проверьте логи.")
-        exit(1)
+        logger.critical(
+            "Необработанное исключение достигло main().",
+            exc_info=True
+        )
+        print("A critical error has occurred.")
+        sys.exit(1)
+    else:
+        logger.info("Завершение приложения")
+
+    finally:
+        close_mongo_connections()
 
 
 if __name__ == "__main__":
     main()
-
-

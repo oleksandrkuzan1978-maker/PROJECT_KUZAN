@@ -1,63 +1,60 @@
 """
-Модуль выполнения SQL-запросов.
+Выполнение параметризованных SELECT-запросов MySQL.
 
-Назначение:
-    Содержит универсальные функции для работы
-    с объектом курсора MySQL.
-
-Функции модуля:
-    - выполнение параметризованных SQL-запросов;
-    - получение результатов;
-    - форматирование результатов в табличный вид.
-
-Используемые библиотеки:
-    - mysql.connector
-    - tabulate
-
-Модуль не содержит бизнес-логики и не зависит
-от конкретных таблиц базы данных.
+Модуль содержит функцию, которая выполняет
+переданный запрос через открытый курсор и возвращает полученные
+строки вместе с названиями столбцов.
 """
-#from typing import Any
 
-# database/executor.py
-# from config.local_settings import dbconfig
-from tabulate import tabulate
-import mysql.connector
+from typing import Any
 import logging
 
+from mysql.connector.cursor import MySQLCursorAbstract
+from utils.logger_config import funclog
+
 logger = logging.getLogger(__name__)  # Создаю логгер с именем "executor".
-                                      # Метод getLogger возвращает объект логгера с именем этого модуля".
 
-def execute_query(cursor, query: str, *params) -> str:
 
-    try:  #В этом модуле стоит ловить ошибки выполнения SQL
-        logger.info("Выполнение SQL-запроса к БД")
-        cursor.execute(query, params) # Выполняется SQL-запрос. Результат хранится внутри курсора
+@funclog
+def execute_query(
+        cursor: MySQLCursorAbstract,
+        query: str,
+        *params: Any,
+) -> tuple[list[tuple[Any, ...]], list[str]]:
+    """
+        Выполняет параметризованный SELECT-запрос.
 
-        rows = cursor.fetchall() # Методом курсора достаем сразу весь результат запроса из курсора.
-                                 # rows - список тюплов. Каждый тюпл - это одна строка таблицы
+        Args:
+            cursor:
+                Открытый курсор MySQL.
+            query:
+                SQL-запрос с параметрами в формате драйвера MySQL.
+            *params:
+                Значения параметров SQL-запроса.
 
-# Блок определяет, что выводить на экран: количество совпадений по запросам или окончательный рез-т
-        if len(params) in (1, 3): # Если параметры относятся к запросам NAME_TOTAL или GENRES_TOTAL
-            return rows[0][0] # тогда ф-ция возвращает общее количество совпадений по запросам
-        else:
-            headers = [col[0] for col in cursor.description]
-            return tabulate(rows, headers=headers, tablefmt="psql")
-###
+        Returns:
+            Кортеж из списка полученных строк и списка названий
+            столбцов результата.
 
-    except TypeError as te:  # Подумать, стоит ли ловить эту ошибку здесь
-        logger.exception("Неверное количество параметров: %s", te) # передано в params не то кол-во параметров,
-                                                                               # чем нужно для передачи в запрос
-        raise
-    except mysql.connector.ProgrammingError as pe:
-        logger.exception("Неверный запрос: %s", pe)  # ошибки в запросе query
-        raise
-    except mysql.connector.Error as err:  # отлавливает ошибки, связанные с MySQL: не верный пароль,
-                                          # не верное имя БД, ошибки в запросе, неверное количество параметров,
-                                          # потеря соединения...
-        logger.exception("Ошибка при выполнении SQL-запроса: %s", err)
-        raise # raise нужен здесь, чтобы сообщение об ошибке, возникшей при вызове этого модуля
-              # передалось дальше, в модуль, который будет вызывать эту функцию
-    except Exception:
-        logger.exception("Неожиданная ошибка")
-        raise
+        Raises:
+            mysql.connector.Error:
+                Если выполнить запрос или получить результат не удалось.
+        """
+
+    logger.debug(
+        "Выполняется SQL-запрос: operation=%s, params_count=%d",
+        query.lstrip().split(maxsplit=1)[0].upper(),
+        len(params), )
+
+    cursor.execute(query, params)  # Выполняется SQL-запрос. Результат хранится внутри курсора
+
+    rows = cursor.fetchall()  # Методом курсора достаем сразу весь результат запроса из курсора.
+    # Cписок кортежей. Каждый кортеж - это одна строка таблицы
+    headers = [col[0] for col in cursor.description or ()]  # - это шапка таблицы рез-тов
+
+    logger.debug(
+        "SQL-запрос выполнен: rows=%d, columns=%d",
+        len(rows),
+        len(headers),
+    )
+    return rows, headers

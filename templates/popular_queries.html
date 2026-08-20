@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Популярные запросы — Sakila Movie Search
+{% endblock %}
+
+{% block content %}
+    <header class="bg-primary text-white py-4">
+        <div class="container">
+            <h1 class="h2 fw-bold mb-2">
+                ⭐ Популярные запросы
+            </h1>
+
+            <p class="mb-0">
+                Запросы, которые пользователи выполняли чаще всего
+            </p>
+        </div>
+    </header>
+
+    <section class="container py-5">
+        {% if queries %}
+            <div class="table-responsive shadow-sm">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">№</th>
+                            <th scope="col">Тип поиска</th>
+                            <th scope="col">Запрос</th>
+                            <th scope="col">Количество</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for query in queries %}
+                            <tr>
+                                <th scope="row">
+                                    {{ loop.index }}
+                                </th>
+
+                                <td>
+                                    {% if query.search_type == "by_name" %}
+                                        <span class="badge text-bg-primary">
+                                            По названию
+                                        </span>
+                                    {% else %}
+                                        <span class="badge text-bg-success">
+                                            По жанру и годам
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if query.search_type == "by_name" %}
+                                        Ключевое слово:
+                                        {{ query.query.keyword }}
+                                    {% else %}
+                                        Жанр: {{ query.query.genre }},
+                                        годы: {{ query.query.years }}
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <span class="badge rounded-pill text-bg-warning">
+                                        {{ query.count }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                История поисковых запросов пока пуста.
+            </div>
+        {% endif %}
+
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <a href="/" class="btn btn-outline-primary">
+                Вернуться к поиску
+            </a>
+
+            <a href="/recent" class="btn btn-outline-secondary">
+                Последние запросы
+            </a>
+        </div>
+    </section>
+{% endblock %}
