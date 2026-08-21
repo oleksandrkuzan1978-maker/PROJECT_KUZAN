@@ -157,7 +157,7 @@ def show_paginated_results(
     page = 1
 
     while True:
-        # Очистка экрана
+
         clear_screen()
 
         print(Fore.YELLOW + title)

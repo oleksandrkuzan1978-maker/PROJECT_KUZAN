@@ -30,7 +30,6 @@ from database.film_service import (
 from database.mongo_history_write import save_query
 from ui.history_view import output_last_queries, output_top_queries
 from ui.input_helpers import (
-    # input_command,
     input_any,
     input_year_range,
     select_genre,

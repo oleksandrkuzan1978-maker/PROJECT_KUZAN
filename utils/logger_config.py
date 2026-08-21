@@ -52,7 +52,7 @@ def setup_logging() -> None:
     info_log = os.path.join(log_dir, "info.log")
     error_log = os.path.join(log_dir, "errors.log")
 
-    # Создаю обработчик лог-сообщений для записи в лог-файл
+    # Создаю обработчики лог-сообщений для записи в лог-файл
     debug_handler = logging.FileHandler(
         debug_log,
         mode="w",
